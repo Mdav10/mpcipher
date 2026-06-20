@@ -30,14 +30,24 @@ if (typeof CryptoJS === 'undefined') {
 .login-box label{display:block;color:#0f0;font-size:12px;margin-bottom:5px;letter-spacing:1px}
 .login-box input{width:100%;background:#000;color:#0f0;border:1px solid #0f0;padding:12px 15px;font-family:monospace;font-size:14px;border-radius:5px;outline:none;transition:all 0.3s}
 .login-box input:focus{border-color:#0f0;box-shadow:0 0 15px rgba(0,255,0,0.3);background:#001a00}
-.login-box .btn-group{display:flex;gap:15px;margin-top:25px}
-.login-box button{flex:1;padding:12px;font-family:monospace;font-size:14px;font-weight:bold;border-radius:5px;cursor:pointer;transition:all 0.3s;border:1px solid #0f0;background:#001a00;color:#0f0}
-.login-box button:hover{background:#0f0;color:#000;box-shadow:0 0 20px #0f0;transform:scale(1.02)}
+.login-box .btn-group{display:flex;gap:15px;margin-top:20px;flex-wrap:wrap}
+.login-box .btn-group button{flex:1;padding:12px;font-family:monospace;font-size:14px;font-weight:bold;border-radius:5px;cursor:pointer;transition:all 0.3s;border:1px solid #0f0;background:#001a00;color:#0f0;min-width:100px}
+.login-box .btn-group button:hover{background:#0f0;color:#000;box-shadow:0 0 20px #0f0;transform:scale(1.02)}
+.login-box .btn-group button:disabled{opacity:0.5;cursor:not-allowed;transform:none}
 .login-box .error{color:#ff4444;font-size:12px;text-align:center;margin-top:15px;min-height:20px;text-shadow:0 0 5px #ff000033}
 .login-box .footer{text-align:center;margin-top:20px;padding-top:15px;border-top:1px solid #0f033;font-size:10px;color:#0f0;opacity:0.5}
-#loginStatus{color:#0f0;font-size:11px;text-align:center;margin-top:10px;min-height:16px}
+.whatsapp-btn{background:#25D36633 !important;border-color:#25D366 !important;color:#25D366 !important}
+.whatsapp-btn:hover{background:#25D366 !important;color:#000 !important;box-shadow:0 0 20px #25D366 !important}
+#loginStatus{color:#ff4444;font-size:12px;text-align:center;min-height:20px;margin-top:10px}
 
-/* Rest of the tool styles (unchanged) */
+/* 3-Dot Loading Animation */
+.dot-loader{display:inline-flex;gap:6px;align-items:center;justify-content:center}
+.dot-loader .dot{width:8px;height:8px;background:#0f0;border-radius:50%;display:inline-block;animation:bounce 1.2s infinite ease-in-out}
+.dot-loader .dot:nth-child(2){animation-delay:0.2s}
+.dot-loader .dot:nth-child(3){animation-delay:0.4s}
+@keyframes bounce{0%,60%,100%{transform:scale(1);opacity:1}30%{transform:scale(1.5);opacity:0.7}}
+
+/* Rest of tool styles (unchanged) */
 .status-bar{display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid #0f0;margin-bottom:20px;color:#0f0;font-size:11px;flex-wrap:wrap;align-items:center}
 .led{display:inline-block;width:10px;height:10px;background:#0f0;border-radius:50%;animation:blink 1s infinite;margin-right:8px}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
@@ -95,16 +105,21 @@ button:hover{background:#0f0;color:#000;box-shadow:0 0 15px #0f0}
         <form id="loginForm" onsubmit="return false;">
             <div class="field">
                 <label>👤 USERNAME</label>
-                <input type="text" id="loginUsername" placeholder="Enter username" value="Mpc" autofocus>
+                <input type="text" id="loginUsername" placeholder="Enter your username" autofocus>
             </div>
             <div class="field">
                 <label>🔑 PASSWORD</label>
-                <input type="password" id="loginPassword" placeholder="Enter password" value="08800Mpc!">
+                <input type="password" id="loginPassword" placeholder="Enter your password">
             </div>
-            <div id="loginStatus" style="color:#ff4444;font-size:12px;text-align:center;min-height:20px;"></div>
+            <div id="loginStatus"></div>
             <div class="btn-group">
                 <button type="button" id="loginBtn" style="background:#0f0;color:#000;border-color:#0f0;">▶ ACCESS GRANTED</button>
                 <button type="button" id="cancelBtn" style="background:transparent;border-color:#555;color:#888;">CANCEL</button>
+            </div>
+            <div class="btn-group" style="margin-top:10px;">
+                <button type="button" id="whatsappBtn" class="whatsapp-btn" style="flex:1;min-width:100%;">
+                    💬 NEW? CONTACT ON WHATSAPP
+                </button>
             </div>
             <div class="footer">🔐 Military Grade • Authorized Personnel Only</div>
         </form>
@@ -312,7 +327,6 @@ setInterval(drawMatrix,35);
 window.addEventListener('resize', ()=>{
     canvas.width=window.innerWidth;
     canvas.height=window.innerHeight;
-    // recalc columns etc. but we keep simple
 });
 
 // ==========================================
@@ -328,6 +342,7 @@ const loginPassword = document.getElementById('loginPassword');
 const loginStatus = document.getElementById('loginStatus');
 const loginBtn = document.getElementById('loginBtn');
 const cancelBtn = document.getElementById('cancelBtn');
+const whatsappBtn = document.getElementById('whatsappBtn');
 
 // Check if already logged in
 if (sessionStorage.getItem('mpc_logged_in') === 'true') {
@@ -338,31 +353,90 @@ if (sessionStorage.getItem('mpc_logged_in') === 'true') {
     mainContainer.style.display = 'none';
 }
 
+// ==========================================
+// 3. 3-DOT LOADING ANIMATION
+// ==========================================
+function showLoading(button) {
+    button.disabled = true;
+    button.innerHTML = `
+        <span class="dot-loader">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+        </span>
+        AUTHENTICATING...
+    `;
+    button.style.background = '#0f0033';
+}
+
+function resetButton(button) {
+    button.disabled = false;
+    button.innerHTML = '▶ ACCESS GRANTED';
+    button.style.background = '#0f0';
+    button.style.color = '#000';
+}
+
 function attemptLogin() {
     const user = loginUsername.value.trim();
     const pass = loginPassword.value.trim();
-    if (user === VALID_USERNAME && pass === VALID_PASSWORD) {
-        sessionStorage.setItem('mpc_logged_in', 'true');
-        loginOverlay.style.display = 'none';
-        mainContainer.style.display = 'block';
-        loginStatus.textContent = '';
-        // Initialize tool after login
-        updateUI();
-        updateConversion();
-    } else {
-        loginStatus.textContent = '⛔ INVALID CREDENTIALS. ACCESS DENIED.';
-        loginStatus.style.color = '#ff4444';
-        // Shake effect
-        loginOverlay.querySelector('.login-box').style.animation = 'shake 0.4s';
-        setTimeout(()=>{loginOverlay.querySelector('.login-box').style.animation = '';}, 500);
-    }
+    
+    // Show loading animation
+    showLoading(loginBtn);
+    
+    // Simulate authentication delay (1.5 seconds for professional feel)
+    setTimeout(() => {
+        if (user === VALID_USERNAME && pass === VALID_PASSWORD) {
+            sessionStorage.setItem('mpc_logged_in', 'true');
+            loginOverlay.style.display = 'none';
+            mainContainer.style.display = 'block';
+            loginStatus.textContent = '✅ ACCESS GRANTED. WELCOME!';
+            loginStatus.style.color = '#0f0';
+            resetButton(loginBtn);
+            // Initialize tool after login
+            setupToolEvents();
+            updateUI();
+            updateConversion();
+        } else {
+            resetButton(loginBtn);
+            loginStatus.textContent = '⛔ INVALID CREDENTIALS. ACCESS DENIED.';
+            loginStatus.style.color = '#ff4444';
+            // Shake effect
+            const box = loginOverlay.querySelector('.login-box');
+            box.style.animation = 'shake 0.4s';
+            setTimeout(()=>{box.style.animation = '';}, 500);
+            loginUsername.value = '';
+            loginPassword.value = '';
+            loginUsername.focus();
+        }
+    }, 1500);
 }
 
-// Add keypress event for Enter
-loginUsername.addEventListener('keypress', (e) => { if(e.key==='Enter') loginPassword.focus(); });
-loginPassword.addEventListener('keypress', (e) => { if(e.key==='Enter') attemptLogin(); });
+// ==========================================
+// 4. WHATSAPP CONTACT
+// ==========================================
+whatsappBtn.addEventListener('click', () => {
+    const phoneNumber = '256762117982';
+    const message = encodeURIComponent(
+        'Hello Mugisha Pc,\n\n' +
+        'I would like to access the MPC_CIPHER_TERMINAL.\n' +
+        'Please provide me with credentials.\n\n' +
+        'Thank you!'
+    );
+    window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+});
+
+// ==========================================
+// 5. EVENT LISTENERS
+// ==========================================
+loginUsername.addEventListener('keypress', (e) => { 
+    if(e.key==='Enter') loginPassword.focus(); 
+});
+loginPassword.addEventListener('keypress', (e) => { 
+    if(e.key==='Enter') attemptLogin(); 
+});
 
 loginBtn.addEventListener('click', attemptLogin);
+
 cancelBtn.addEventListener('click', ()=>{
     loginUsername.value = '';
     loginPassword.value = '';
@@ -384,7 +458,7 @@ styleShake.textContent = `
 document.head.appendChild(styleShake);
 
 // ==========================================
-// 3. CIPHER FUNCTIONS (unchanged)
+// 6. CIPHER FUNCTIONS
 // ==========================================
 function caesarEncrypt(text,shift){if(!text)return '';shift=shift%26;return text.replace(/[a-zA-Z]/g,c=>{const b=c<='Z'?65:97;return String.fromCharCode(((c.charCodeAt(0)-b+shift)%26+26)%26+b);});}
 function caesarDecrypt(text,shift){return caesarEncrypt(text,-shift);}
@@ -415,7 +489,7 @@ if(mode==='encrypt'){switch(type){case'caesar':return caesarEncrypt(text,shift);
 else{switch(type){case'caesar':return caesarDecrypt(text,shift);case'atbash':return atbash(text);case'base64':return base64Decode(text);case'reverse':return reverse(text);case'rot13':return rot13(text);case'binary':return binaryDecode(text);case'hex':return hexDecode(text);case'morse':return morseDecode(text);case'rot5':return rot5(text);case'rot47':return rot47(text);case'vigenere':return vigenereDecrypt(text,vigenereKey);case'affine':return affineDecrypt(text,affineA,affineB);case'aes':return aesDecrypt(text,aesPassword);default:return text;}}}
 
 // ==========================================
-// 4. UI CONTROLS (unchanged)
+// 7. UI CONTROLS
 // ==========================================
 const inputText=document.getElementById('inputText');
 const outputText=document.getElementById('outputText');
@@ -438,71 +512,7 @@ function updateUI(){const type=cipherType.value;shiftControl.style.display=type=
 function updateConversion(){const text=inputText.value;const type=cipherType.value;const shift=parseInt(shiftSlider.value);const key=vigenereKey.value;const a=parseInt(affineA.value);const b=parseInt(affineB.value);const password=aesKey.value;const result=processText(text,type,currentMode,shift,key,a,b,password);outputText.value=result;
 if(text.trim()&&result.trim()&&text!==result){const historyDiv=document.getElementById('historyList');const time=new Date().toLocaleTimeString();const modeIcon=currentMode==='encrypt'?'🔒':'🔓';const typeIcon={caesar:'🔐',atbash:'🔄',base64:'📦',reverse:'🔁',rot13:'🌀',binary:'💻',hex:'🔢',morse:'📡',rot5:'🔢',rot47:'🎯',vigenere:'🗝️',affine:'📐',aes:'🔐⭐'}[type]||'📝';const item=document.createElement('div');item.className='history-item';item.innerHTML=`[${time}] ${modeIcon} ${typeIcon} | "${text.substring(0,30)}" → "${result.substring(0,30)}"`;historyDiv.insertBefore(item,historyDiv.firstChild);while(historyDiv.children.length>20)historyDiv.removeChild(historyDiv.lastChild);}}
 
-// Event listeners (only after login)
-document.addEventListener('DOMContentLoaded', function(){
-    if (sessionStorage.getItem('mpc_logged_in') === 'true') {
-        // already set up after login
-        inputText.addEventListener('input', updateConversion);
-        cipherType.addEventListener('change', ()=>{updateUI(); updateConversion();});
-        shiftSlider.addEventListener('input', ()=>{shiftValue.textContent=shiftSlider.value; updateConversion();});
-        affineA.addEventListener('input', ()=>{affineAValue.textContent=affineA.value; updateConversion();});
-        affineB.addEventListener('input', ()=>{affineBValue.textContent=affineB.value; updateConversion();});
-        document.getElementById('randomShift').addEventListener('click', ()=>{const r=Math.floor(Math.random()*25)+1;shiftSlider.value=r;shiftValue.textContent=r;updateConversion();});
-        document.getElementById('randomKey').addEventListener('click', ()=>{const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';let k='';for(let i=0;i<10;i++)k+=chars[Math.floor(Math.random()*chars.length)];vigenereKey.value=k;updateConversion();});
-        document.getElementById('randomAesKey').addEventListener('click', ()=>{const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';let k='';for(let i=0;i<16;i++)k+=chars[Math.floor(Math.random()*chars.length)];aesKey.value=k;updateConversion();});
-        document.getElementById('autoDetectBtn').addEventListener('click', ()=>{currentMode='encrypt';document.getElementById('autoDetectBtn').classList.add('active-mode');document.getElementById('manualEncryptBtn').classList.remove('active-mode');document.getElementById('manualDecryptBtn').classList.remove('active-mode');updateConversion();});
-        document.getElementById('manualEncryptBtn').addEventListener('click', ()=>{currentMode='encrypt';document.getElementById('manualEncryptBtn').classList.add('active-mode');document.getElementById('autoDetectBtn').classList.remove('active-mode');document.getElementById('manualDecryptBtn').classList.remove('active-mode');updateConversion();});
-        document.getElementById('manualDecryptBtn').addEventListener('click', ()=>{currentMode='decrypt';document.getElementById('manualDecryptBtn').classList.add('active-mode');document.getElementById('autoDetectBtn').classList.remove('active-mode');document.getElementById('manualEncryptBtn').classList.remove('active-mode');updateConversion();});
-        document.getElementById('swapBtn').addEventListener('click', ()=>{const temp=inputText.value;inputText.value=outputText.value;outputText.value=temp;updateConversion();});
-        document.getElementById('copyBtn').addEventListener('click', ()=>{outputText.select();document.execCommand('copy');alert('📋 Copied!');});
-        document.getElementById('clearBtn').addEventListener('click', ()=>{inputText.value='';outputText.value='';document.getElementById('historyList').innerHTML='';updateConversion();});
-        document.getElementById('fullscreenBtn').addEventListener('click', ()=>{if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();});
-
-        // User Guide Modal
-        const modal=document.getElementById('userGuideModal');
-        const userGuideBtn=document.getElementById('userGuideBtn');
-        const closeBtn=document.getElementById('closeGuideBtn');
-        userGuideBtn.addEventListener('click', ()=>{modal.style.display='block';});
-        closeBtn.addEventListener('click', ()=>{modal.style.display='none';});
-        window.addEventListener('click', (e)=>{if(e.target===modal){modal.style.display='none';}});
-        
-        updateUI();
-        updateConversion();
-    }
-});
-
-// If login happens after page load, we need to attach events then.
-// We'll re-run event attachment after successful login.
-const origAttempt = attemptLogin;
-attemptLogin = function() {
-    const user = loginUsername.value.trim();
-    const pass = loginPassword.value.trim();
-    if (user === VALID_USERNAME && pass === VALID_PASSWORD) {
-        sessionStorage.setItem('mpc_logged_in', 'true');
-        loginOverlay.style.display = 'none';
-        mainContainer.style.display = 'block';
-        loginStatus.textContent = '';
-        // Now attach events
-        // We can just re-run the DOMContentLoaded logic or manually attach.
-        // Since we already have a listener, we can trigger it.
-        // But to be safe, we manually call the setup.
-        // Use a function to setup events.
-        setupToolEvents();
-        updateUI();
-        updateConversion();
-    } else {
-        loginStatus.textContent = '⛔ INVALID CREDENTIALS. ACCESS DENIED.';
-        loginStatus.style.color = '#ff4444';
-        const box = loginOverlay.querySelector('.login-box');
-        box.style.animation = 'shake 0.4s';
-        setTimeout(()=>{box.style.animation = '';}, 500);
-    }
-};
-
 function setupToolEvents() {
-    // Remove previous listeners to avoid duplicates (not necessary if only called once)
-    // But we'll just add if not already added.
-    // We can use a flag to prevent double binding.
     if (window._eventsAttached) return;
     window._eventsAttached = true;
 
@@ -522,7 +532,6 @@ function setupToolEvents() {
     document.getElementById('clearBtn').addEventListener('click', ()=>{inputText.value='';outputText.value='';document.getElementById('historyList').innerHTML='';updateConversion();});
     document.getElementById('fullscreenBtn').addEventListener('click', ()=>{if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();});
 
-    // User Guide Modal
     const modal=document.getElementById('userGuideModal');
     const userGuideBtn=document.getElementById('userGuideBtn');
     const closeBtn=document.getElementById('closeGuideBtn');
@@ -531,7 +540,7 @@ function setupToolEvents() {
     window.addEventListener('click', (e)=>{if(e.target===modal){modal.style.display='none';}});
 }
 
-// If already logged in at page load, attach events.
+// If already logged in at page load
 if (sessionStorage.getItem('mpc_logged_in') === 'true') {
     setupToolEvents();
     updateUI();
