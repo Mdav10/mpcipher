@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>MPC_CIPHER_TERMINAL v8.0</title>
-<!-- QR code generator (client-side, no data leaves the browser) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -32,8 +31,6 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .history{background:#0a0a0a;border:1px solid #0f0;border-radius:10px;padding:12px;max-height:150px;overflow-y:auto;font-size:10px}
 .hi{padding:4px 0;border-bottom:1px solid #0f02}
 .cat{font-size:10px;opacity:.6;margin-left:6px}
-
-/* QR modal */
 .modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.95);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px}
 .modal.open{display:flex}
 .modal-box{background:#0a0a0a;border:2px solid #0f0;border-radius:14px;padding:24px;max-width:420px;width:100%;box-shadow:0 0 50px rgba(0,255,0,.3);text-align:center}
@@ -43,7 +40,6 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .qr-holder img,.qr-holder canvas{display:block}
 .modal-box .actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
 .warn{font-size:11px;color:#ff0;margin-top:12px;line-height:1.5}
-
 @media(max-width:768px){.grid{grid-template-columns:1fr}textarea{height:220px}}
 </style>
 </head>
@@ -56,6 +52,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <div>🟢 AES-256-GCM</div>
     <div>🔐 AUTHENTICATED</div>
     <div class="badge">👤 <span id="who">{{ username }}</span></div>
+    <button class="small" id="guideBtn">📘 GUIDE</button>
     <button class="small" id="pwBtn">🔑 CHANGE PASSWORD</button>
     <button class="small" id="logout">LOGOUT</button>
   </div>
@@ -126,7 +123,6 @@ button:disabled{opacity:.4;cursor:not-allowed}
   </div>
 </div>
 
-<!-- QR Modal -->
 <div id="qrModal" class="modal">
   <div class="modal-box">
     <h2>📲 MPC SECURE MESSAGE</h2>
@@ -144,7 +140,6 @@ button:disabled{opacity:.4;cursor:not-allowed}
 </div>
 
 <script>
-/* ---------- Matrix rain ---------- */
 const c=document.getElementById('matrix'),x=c.getContext('2d');
 function resize(){c.width=innerWidth;c.height=innerHeight;}
 resize();addEventListener('resize',resize);
@@ -160,7 +155,6 @@ setInterval(()=>{
   }
 },40);
 
-/* ---------- UI refs ---------- */
 const modeSel=document.getElementById('mode');
 const pwRow=document.getElementById('passwordRow');
 const shiftRow=document.getElementById('shiftRow');
@@ -183,9 +177,9 @@ const showMsg=(t,cls='ok')=>{
 };
 
 function refreshActionButtons(){
-  const isAesPayload = out.value.startsWith('MPC1.');
-  qrBtn.disabled = !isAesPayload;
-  saveBtn.disabled = !isAesPayload;
+  const isAesPayload=out.value.startsWith('MPC1.');
+  qrBtn.disabled=!isAesPayload;
+  saveBtn.disabled=!isAesPayload;
 }
 
 modeSel.onchange=()=>{
@@ -197,7 +191,6 @@ modeSel.onchange=()=>{
 shift.oninput=()=>shiftVal.textContent=shift.value;
 out.addEventListener('input',refreshActionButtons);
 
-/* ---------- Web Crypto (AES-256-GCM) ---------- */
 const b64=(buf)=>btoa(String.fromCharCode(...new Uint8Array(buf)));
 const unb64=(s)=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 
@@ -213,8 +206,8 @@ async function deriveKey(password,salt){
 async function aesEncrypt(plaintext,password){
   const enc=new TextEncoder();
   const salt=crypto.getRandomValues(new Uint8Array(16));
-  const iv  =crypto.getRandomValues(new Uint8Array(12));
-  const key = await deriveKey(password,salt);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await deriveKey(password,salt);
   const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv,tagLength:128},key,enc.encode(plaintext));
   const ctBytes=new Uint8Array(ct);
   const tag=ctBytes.slice(-16);
@@ -224,21 +217,20 @@ async function aesEncrypt(plaintext,password){
 }
 
 async function aesDecrypt(payload,password){
-  if(!payload.startsWith('MPC1.')) throw new Error('Not an MPC1 message');
+  if(!payload.startsWith('MPC1.'))throw new Error('Not an MPC1 message');
   let pkg;
-  try{ pkg=JSON.parse(atob(payload.slice(5))); }catch{ throw new Error('Corrupted MPC1 header'); }
-  if(pkg.v!==1||pkg.alg!=='AES-256-GCM') throw new Error('Unsupported MPC1 version/algorithm');
-  const salt=unb64(pkg.salt), iv=unb64(pkg.iv), ct=unb64(pkg.ct), tag=unb64(pkg.tag);
+  try{pkg=JSON.parse(atob(payload.slice(5)));}catch{throw new Error('Corrupted MPC1 header');}
+  if(pkg.v!==1||pkg.alg!=='AES-256-GCM')throw new Error('Unsupported MPC1 version/algorithm');
+  const salt=unb64(pkg.salt),iv=unb64(pkg.iv),ct=unb64(pkg.ct),tag=unb64(pkg.tag);
   const combined=new Uint8Array(ct.length+tag.length);
-  combined.set(ct,0); combined.set(tag,ct.length);
+  combined.set(ct,0);combined.set(tag,ct.length);
   const key=await deriveKey(password,salt);
   try{
     const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv,tagLength:128},key,combined);
     return new TextDecoder().decode(pt);
-  }catch{ throw new Error('AUTHENTICATION FAILED — wrong password or modified message'); }
+  }catch{throw new Error('AUTHENTICATION FAILED — wrong password or modified message');}
 }
 
-/* ---------- Educational ciphers ---------- */
 function caesar(t,s,dec=false){
   if(dec)s=-s;s=((s%26)+26)%26;
   return t.replace(/[a-zA-Z]/g,ch=>{
@@ -260,7 +252,6 @@ const RMORSE=Object.fromEntries(Object.entries(MORSE).map(([k,v])=>[v,k]));
 const morseE=t=>[...t.toUpperCase()].map(c=>MORSE[c]||c).join(' ');
 const morseD=t=>t.split(' ').map(m=>RMORSE[m]||m).join('');
 
-/* ---------- Encrypt / decrypt ---------- */
 async function run(action){
   const t=inp.value;
   if(!t){showMsg('Nothing to process','err');return;}
@@ -276,16 +267,16 @@ async function run(action){
         fetch('/api/message-log',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({algorithm:'AES-256-GCM',size:t.length})});
       } else result=await aesDecrypt(t,password.value);
     } else {
-      const s=parseInt(shift.value), dec=(action==='decrypt');
+      const s=parseInt(shift.value),dec=(action==='decrypt');
       switch(m){
         case 'caesar': result=caesar(t,s,dec);break;
         case 'atbash': result=atbash(t);break;
         case 'base64': result=dec?b64d(t):b64e(t);break;
-        case 'rot13':  result=rot13(t);break;
-        case 'reverse':result=reverse(t);break;
+        case 'rot13': result=rot13(t);break;
+        case 'reverse': result=reverse(t);break;
         case 'binary': result=dec?binD(t):binE(t);break;
-        case 'hex':    result=dec?hexD(t):hexE(t);break;
-        case 'morse':  result=dec?morseD(t):morseE(t);break;
+        case 'hex': result=dec?hexD(t):hexE(t);break;
+        case 'morse': result=dec?morseD(t):morseE(t);break;
       }
     }
     out.value=result;
@@ -311,7 +302,6 @@ function addHistory(action,mode,input,output){
   while(hist.children.length>15)hist.removeChild(hist.lastChild);
 }
 
-/* ---------- Buttons ---------- */
 document.getElementById('encBtn').onclick=()=>run('encrypt');
 document.getElementById('decBtn').onclick=()=>run('decrypt');
 
@@ -343,8 +333,8 @@ document.getElementById('logout').onclick=async()=>{
   location.href='/login';
 };
 document.getElementById('pwBtn').onclick=()=>location.href='/change-password';
+document.getElementById('guideBtn').onclick=()=>location.href='/guide';
 
-/* ---------- QR CODE ---------- */
 const qrModal=document.getElementById('qrModal');
 const qrHolder=document.getElementById('qrHolder');
 
@@ -352,11 +342,7 @@ qrBtn.onclick=()=>{
   const payload=out.value.trim();
   if(!payload.startsWith('MPC1.')){showMsg('Generate an AES-256-GCM message first','err');return;}
   qrHolder.innerHTML='';
-
-  // Very long payloads don't fit well in QR (max ~2900 bytes at low ECC)
-  // Show a warning if large but still attempt.
   const tooBig=payload.length>2500;
-
   try{
     new QRCode(qrHolder,{
       text:payload,
@@ -364,7 +350,7 @@ qrBtn.onclick=()=>{
       height:320,
       colorDark:'#000',
       colorLight:'#fff',
-      correctLevel: QRCode.CorrectLevel.L
+      correctLevel:QRCode.CorrectLevel.L
     });
   }catch(e){
     showMsg('QR generation failed: message too large','err');
@@ -388,18 +374,12 @@ document.getElementById('qrDownload').onclick=()=>{
   link.click();
 };
 
-/* ---------- .MPC FILE SAVE ---------- */
 saveBtn.onclick=()=>{
   const payload=out.value.trim();
   if(!payload.startsWith('MPC1.')){showMsg('Generate an AES-256-GCM message first','err');return;}
-
-  // Simple .mpc format:
-  //   First line: header
-  //   Rest: MPC1 payload
   const header='-----BEGIN MPC SECURE MESSAGE-----';
   const footer='-----END MPC SECURE MESSAGE-----';
   const content=`${header}\n${payload}\n${footer}\n`;
-
   const blob=new Blob([content],{type:'application/octet-stream'});
   const url=URL.createObjectURL(blob);
   const link=document.createElement('a');
@@ -411,7 +391,6 @@ saveBtn.onclick=()=>{
   showMsg('💾 Saved as .mpc file','ok');
 };
 
-/* ---------- .MPC FILE LOAD ---------- */
 loadBtn.onclick=()=>loadFile.click();
 
 loadFile.onchange=(e)=>{
@@ -420,8 +399,6 @@ loadFile.onchange=(e)=>{
   const reader=new FileReader();
   reader.onload=(ev)=>{
     let text=ev.target.result;
-
-    // Extract MPC1 payload from .mpc wrapper if present
     const begin='-----BEGIN MPC SECURE MESSAGE-----';
     const end='-----END MPC SECURE MESSAGE-----';
     const bIdx=text.indexOf(begin);
@@ -431,13 +408,10 @@ loadFile.onchange=(e)=>{
     } else {
       text=text.trim();
     }
-
     if(!text.startsWith('MPC1.')){
       showMsg('Not a valid .mpc file','err');
       return;
     }
-
-    // Switch to secure mode, put payload in input
     modeSel.value='secure';
     modeSel.onchange();
     inp.value=text;
@@ -446,10 +420,9 @@ loadFile.onchange=(e)=>{
     showMsg('📂 Loaded. Enter password and click DECRYPT.','ok');
   };
   reader.readAsText(file);
-  loadFile.value=''; // allow re-selecting same file
+  loadFile.value='';
 };
 
-/* ---------- Init ---------- */
 modeSel.onchange();
 refreshActionButtons();
 </script>
