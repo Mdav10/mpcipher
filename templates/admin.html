@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MPC — Admin Panel</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:#0f0;font-family:'Courier New',monospace;min-height:100vh}
+#matrix{position:fixed;inset:0;z-index:0;opacity:.10;pointer-events:none}
+.wrap{position:relative;z-index:2;max-width:1200px;margin:16px auto;padding:20px;background:rgba(0,0,0,.9);border:2px solid #0f0;border-radius:14px;box-shadow:0 0 30px rgba(0,255,0,.25)}
+.bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding-bottom:12px;border-bottom:1px solid #0f0;font-size:12px}
+h1{font-size:18px;letter-spacing:2px;text-shadow:0 0 8px #0f0}
+h2{font-size:14px;margin:20px 0 10px;letter-spacing:1px;border-bottom:1px dashed #0f0;padding-bottom:6px}
+button{background:#001a00;color:#0f0;border:1px solid #0f0;padding:9px 16px;font-family:inherit;font-weight:bold;cursor:pointer;border-radius:6px;transition:.2s;font-size:13px}
+button:hover{background:#0f0;color:#000}
+button.danger{border-color:#f55;color:#f55}
+button.danger:hover{background:#f55;color:#000}
+button.small{padding:5px 10px;font-size:11px;font-weight:normal}
+input{background:#000;color:#0f0;border:1px solid #0f0;padding:10px 12px;border-radius:5px;font-family:inherit;font-size:13px;outline:none;width:100%}
+input:focus{box-shadow:0 0 10px rgba(0,255,0,.3)}
+.field{margin-bottom:12px}
+label{display:block;font-size:11px;margin-bottom:5px;letter-spacing:1px}
+.grid2{display:grid;grid-template-columns:2fr 2fr 2fr auto;gap:10px;align-items:end}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+th,td{border:1px solid #0f0;padding:8px;text-align:left}
+th{background:#001a00}
+tr:hover{background:#001a00}
+.status-on{color:#0f0;font-weight:bold}
+.status-off{color:#f55;font-weight:bold}
+.tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;border:1px solid #0f0}
+.tag-admin{background:#ff03;color:#ff0;border-color:#ff0}
+.msg{padding:10px;border-radius:6px;margin-top:10px;font-size:12px;text-align:center}
+.ok{background:#0f01;border:1px solid #0f0;color:#0f0}
+.err{background:#f001;border:1px solid #f55;color:#f55}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.copy-row{font-family:monospace;font-size:11px;background:#001a00;padding:6px 8px;border-radius:4px;margin-top:4px;display:inline-block}
+@media(max-width:768px){.grid2{grid-template-columns:1fr}table{font-size:10px}}
+</style>
+</head>
+<body>
+<canvas id="matrix"></canvas>
+
+<div class="wrap">
+  <div class="bar">
+    <div>🔐 MPC ADMIN PANEL</div>
+    <div>👤 Admin: <b>{{ username }}</b></div>
+    <div>
+      <button class="small" id="refreshBtn">🔄 REFRESH</button>
+      <button class="small" id="logoutBtn" style="border-color:#f55;color:#f55">LOGOUT</button>
+    </div>
+  </div>
+
+  <h2>➕ CREATE NEW USER</h2>
+  <div class="grid2">
+    <div class="field"><label>USERNAME</label><input id="newUser" placeholder="e.g. alice"></div>
+    <div class="field"><label>EMAIL</label><input id="newEmail" placeholder="alice@example.com"></div>
+    <div class="field"><label>PASSWORD (12+)</label><input id="newPass" placeholder="auto-generated if empty"></div>
+    <button id="createBtn">CREATE</button>
+  </div>
+  <div style="font-size:11px;opacity:.7;margin-top:6px">
+    💡 User will be forced to change password on first login.
+  </div>
+
+  <h2>👥 USER LIST (<span id="userCount">0</span>)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>Username</th><th>Email</th><th>Status</th><th>Role</th><th>Created</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="usersBody">
+      <tr><td colspan="7" style="text-align:center;opacity:.5">Loading…</td></tr>
+    </tbody>
+  </table>
+
+  <div class="msg" id="msg" style="display:none"></div>
+</div>
+
+<script>
+/* Matrix */
+const c=document.getElementById('matrix'),x=c.getContext('2d');
+function resize(){c.width=innerWidth;c.height=innerHeight;}
+resize();addEventListener('resize',resize);
+const chars='01アイウエオカキクケコ0123456789#';
+const fs=13;let cols=Math.floor(innerWidth/fs),drops=[...Array(cols)].map(()=>Math.random()*innerHeight/fs);
+setInterval(()=>{
+  x.fillStyle='rgba(0,0,0,0.06)';x.fillRect(0,0,c.width,c.height);
+  x.fillStyle='#0f0';x.font=fs+'px monospace';
+  for(let i=0;i<drops.length;i++){
+    x.fillText(chars[Math.random()*chars.length|0],i*fs,drops[i]*fs);
+    if(drops[i]*fs>c.height&&Math.random()>0.975)drops[i]=0;
+    drops[i]++;
+  }
+},40);
+
+const msg=document.getElementById('msg');
+const showMsg=(t,cls='ok')=>{
+  msg.textContent=t;msg.className='msg '+cls;msg.style.display='block';
+  setTimeout(()=>{msg.style.display='none';},3500);
+};
+
+function securePassword(len=16){
+  const charset='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+';
+  const buf=new Uint32Array(len);
+  crypto.getRandomValues(buf);
+  let out='';
+  for(let i=0;i<len;i++)out+=charset[buf[i]%charset.length];
+  return out;
+}
+
+document.getElementById('logoutBtn').onclick=async()=>{
+  await fetch('/api/logout',{method:'POST',credentials:'include'});
+  location.href='/login';
+};
+
+async function loadUsers(){
+  const r=await fetch('/api/admin/users',{credentials:'include'});
+  if(r.status===401){location.href='/login';return;}
+  if(r.status===403){location.href='/';return;}
+  const d=await r.json();
+  document.getElementById('userCount').textContent=d.users.length;
+  const body=document.getElementById('usersBody');
+  body.innerHTML='';
+  d.users.forEach(u=>{
+    const tr=document.createElement('tr');
+    const created=u.created_at?u.created_at.slice(0,10):'—';
+    const statusClass=u.is_active?'status-on':'status-off';
+    const statusTxt=u.is_active?'🟢 Active':'🔴 Disabled';
+    const roleTag=u.is_admin?'<span class="tag tag-admin">ADMIN</span>':'user';
+    tr.innerHTML=`
+      <td>${u.id}</td>
+      <td><b>${u.username}</b></td>
+      <td>${u.email}</td>
+      <td class="${statusClass}">${statusTxt}</td>
+      <td>${roleTag}</td>
+      <td>${created}</td>
+      <td>
+        <div class="actions">
+          <button class="small" data-act="reset" data-id="${u.id}" data-name="${u.username}">🔑 RESET</button>
+          <button class="small" data-act="toggle" data-id="${u.id}" data-active="${u.is_active}">${u.is_active?'⏸ DISABLE':'▶ ENABLE'}</button>
+          <button class="small danger" data-act="delete" data-id="${u.id}" data-name="${u.username}">🗑 DELETE</button>
+        </div>
+      </td>`;
+    body.appendChild(tr);
+  });
+
+  body.querySelectorAll('button[data-act]').forEach(btn=>{
+    btn.onclick=()=>handleAction(btn.dataset.act,btn.dataset.id,btn.dataset.name,btn.dataset.active);
+  });
+}
+
+async function handleAction(act,id,name,active){
+  if(act==='reset'){
+    const np=prompt(`New password for "${name}" (min 12 chars):`,securePassword());
+    if(!np)return;
+    if(np.length<12)return showMsg('Password must be 12+ characters','err');
+    const r=await fetch(`/api/admin/reset-password/${id}`,{
+      method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({new:np})
+    });
+    const d=await r.json();
+    if(r.ok){
+      showMsg(`✅ Password reset for ${name}`,'ok');
+      try{await navigator.clipboard.writeText(`Username: ${name}\nPassword: ${np}\nLogin: ${location.origin}/login`);}catch{}
+      alert(`New password for ${name}:\n\n${np}\n\n(Copied to clipboard. Send to the user securely.)`);
+    } else showMsg(d.error||'Failed','err');
+  }
+  if(act==='toggle'){
+    const r=await fetch(`/api/admin/toggle-user/${id}`,{method:'POST',credentials:'include'});
+    const d=await r.json();
+    if(r.ok){showMsg(d.is_active?'✅ User enabled':'⏸ User disabled','ok');loadUsers();}
+    else showMsg(d.error||'Failed','err');
+  }
+  if(act==='delete'){
+    if(!confirm(`Delete user "${name}"? This cannot be undone.`))return;
+    const r=await fetch(`/api/admin/delete-user/${id}`,{method:'POST',credentials:'include'});
+    const d=await r.json();
+    if(r.ok){showMsg(`🗑 User "${name}" deleted`,'ok');loadUsers();}
+    else showMsg(d.error||'Failed','err');
+  }
+}
+
+document.getElementById('createBtn').onclick=async()=>{
+  const username=document.getElementById('newUser').value.trim();
+  const email=document.getElementById('newEmail').value.trim();
+  let password=document.getElementById('newPass').value.trim();
+  if(!username||!email)return showMsg('Username and email required','err');
+  if(!password)password=securePassword(16);
+  if(password.length<12)return showMsg('Password must be 12+ characters','err');
+
+  const r=await fetch('/api/admin/create-user',{
+    method:'POST',credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username,email,password})
+  });
+  const d=await r.json();
+  if(r.ok){
+    showMsg(`✅ User "${username}" created`,'ok');
+    try{await navigator.clipboard.writeText(`Username: ${username}\nPassword: ${password}\nLogin: ${location.origin}/login`);}catch{}
+    alert(`User created!\n\nUsername: ${username}\nPassword: ${password}\n\n(Copied to clipboard. Share securely.)`);
+    document.getElementById('newUser').value='';
+    document.getElementById('newEmail').value='';
+    document.getElementById('newPass').value='';
+    loadUsers();
+  } else showMsg(d.error||'Failed','err');
+};
+
+document.getElementById('refreshBtn').onclick=loadUsers;
+
+loadUsers();
+</script>
+</body>
+</html>

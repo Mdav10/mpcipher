@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MPC_CIPHER_TERMINAL — Login</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:#0f0;font-family:'Courier New',monospace;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#matrix{position:fixed;inset:0;z-index:0;opacity:.15}
+.box{position:relative;z-index:2;width:min(420px,92vw);background:#0a0a0a;border:2px solid #0f0;border-radius:14px;padding:36px 28px;box-shadow:0 0 50px rgba(0,255,0,.25)}
+h1{font-size:20px;text-align:center;letter-spacing:2px;text-shadow:0 0 10px #0f0}
+.sub{font-size:11px;text-align:center;opacity:.65;margin:6px 0 24px;border-bottom:1px solid #0f033;padding-bottom:14px}
+label{display:block;font-size:11px;margin-bottom:6px;letter-spacing:1px}
+input{width:100%;background:#000;color:#0f0;border:1px solid #0f0;padding:12px;border-radius:5px;font-family:inherit;font-size:14px;outline:none}
+input:focus{box-shadow:0 0 12px rgba(0,255,0,.3);background:#001a00}
+.field{margin-bottom:16px}
+button{width:100%;padding:12px;background:#001a00;color:#0f0;border:1px solid #0f0;border-radius:5px;font-family:inherit;font-weight:bold;font-size:14px;cursor:pointer;transition:.2s}
+button:hover{background:#0f0;color:#000}
+.msg{min-height:18px;font-size:12px;text-align:center;margin-top:12px}
+.ok{color:#0f0}.err{color:#f55}
+.footer{text-align:center;font-size:10px;opacity:.5;margin-top:20px;border-top:1px solid #0f022;padding-top:12px}
+.notice{font-size:11px;opacity:.7;text-align:center;margin-top:14px;color:#ff0}
+</style>
+</head>
+<body>
+<canvas id="matrix"></canvas>
+
+<div class="box">
+  <h1>🔐 MPC_CIPHER_TERMINAL</h1>
+  <div class="sub">v7.0 • Admin-Controlled Access</div>
+
+  <div class="field">
+    <label>USERNAME</label>
+    <input id="username" autocomplete="username" autofocus>
+  </div>
+  <div class="field">
+    <label>PASSWORD</label>
+    <input id="password" type="password" autocomplete="current-password">
+  </div>
+  <button id="loginBtn">▶ LOGIN</button>
+
+  <div class="msg" id="msg"></div>
+  <div class="notice">🔒 Accounts are created by the administrator only.</div>
+  <div class="footer">🔐 Argon2id • HTTPS • No public registration</div>
+</div>
+
+<script>
+const c=document.getElementById('matrix'),x=c.getContext('2d');
+function resize(){c.width=innerWidth;c.height=innerHeight;}
+resize();addEventListener('resize',resize);
+const chars='01アイウエオカキクケコ0123456789#';
+const fs=13;let cols=Math.floor(innerWidth/fs),drops=[...Array(cols)].map(()=>Math.random()*innerHeight/fs);
+setInterval(()=>{
+  x.fillStyle='rgba(0,0,0,0.06)';x.fillRect(0,0,c.width,c.height);
+  x.fillStyle='#0f0';x.font=fs+'px monospace';
+  for(let i=0;i<drops.length;i++){
+    x.fillText(chars[Math.random()*chars.length|0],i*fs,drops[i]*fs);
+    if(drops[i]*fs>c.height&&Math.random()>0.975)drops[i]=0;
+    drops[i]++;
+  }
+},40);
+
+const msg=document.getElementById('msg');
+const setMsg=(t,cls)=>{msg.textContent=t;msg.className='msg '+(cls||'');};
+
+document.getElementById('loginBtn').onclick=async()=>{
+  const username=document.getElementById('username').value.trim();
+  const password=document.getElementById('password').value;
+  if(!username||!password)return setMsg('Enter username and password','err');
+  setMsg('Authenticating…');
+  try{
+    const r=await fetch('/api/login',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      credentials:'include',
+      body:JSON.stringify({username,password})
+    });
+    const d=await r.json();
+    if(r.ok){
+      setMsg('Access granted. Redirecting…','ok');
+      if(d.must_change)location.href='/change-password';
+      else if(d.is_admin)location.href='/admin';
+      else location.href='/';
+    } else setMsg(d.error||'Login failed','err');
+  }catch(e){setMsg('Network error','err');}
+};
+
+document.getElementById('password').addEventListener('keypress',e=>{
+  if(e.key==='Enter')document.getElementById('loginBtn').click();
+});
+</script>
+</body>
+</html>
