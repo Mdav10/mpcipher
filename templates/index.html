@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>MPC_CIPHER_TERMINAL v7.0</title>
+<title>MPC_CIPHER_TERMINAL v8.0</title>
+<!-- QR code generator (client-side, no data leaves the browser) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;font-family:'Courier New',Consolas,monospace;min-height:100vh;color:#0f0}
@@ -20,6 +22,7 @@ input[type=password]{background:#000;color:#0f0;border:1px solid #0f0;padding:9p
 button{background:#001a00;color:#0f0;border:1px solid #0f0;padding:9px 16px;font-family:inherit;font-weight:bold;cursor:pointer;border-radius:6px;transition:.2s}
 button:hover{background:#0f0;color:#000}
 button.small{padding:4px 10px;font-size:11px;font-weight:normal}
+button:disabled{opacity:.4;cursor:not-allowed}
 .controls{background:#0a0a0a;border:1px solid #0f0;border-radius:10px;padding:16px;margin-bottom:16px}
 .row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
 .msg{font-size:12px;padding:10px;border-radius:6px;margin-top:10px;text-align:center}
@@ -29,6 +32,18 @@ button.small{padding:4px 10px;font-size:11px;font-weight:normal}
 .history{background:#0a0a0a;border:1px solid #0f0;border-radius:10px;padding:12px;max-height:150px;overflow-y:auto;font-size:10px}
 .hi{padding:4px 0;border-bottom:1px solid #0f02}
 .cat{font-size:10px;opacity:.6;margin-left:6px}
+
+/* QR modal */
+.modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.95);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px}
+.modal.open{display:flex}
+.modal-box{background:#0a0a0a;border:2px solid #0f0;border-radius:14px;padding:24px;max-width:420px;width:100%;box-shadow:0 0 50px rgba(0,255,0,.3);text-align:center}
+.modal-box h2{font-size:16px;margin-bottom:8px;letter-spacing:2px}
+.modal-box p{font-size:11px;opacity:.7;margin-bottom:16px}
+.qr-holder{background:#fff;padding:16px;border-radius:10px;display:inline-block;margin-bottom:16px}
+.qr-holder img,.qr-holder canvas{display:block}
+.modal-box .actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.warn{font-size:11px;color:#ff0;margin-top:12px;line-height:1.5}
+
 @media(max-width:768px){.grid{grid-template-columns:1fr}textarea{height:220px}}
 </style>
 </head>
@@ -37,7 +52,7 @@ button.small{padding:4px 10px;font-size:11px;font-weight:normal}
 
 <div class="wrap">
   <div class="bar">
-    <div>🔴 MPC_CIPHER_TERMINAL v7.0</div>
+    <div>🔴 MPC_CIPHER_TERMINAL v8.0</div>
     <div>🟢 AES-256-GCM</div>
     <div>🔐 AUTHENTICATED</div>
     <div class="badge">👤 <span id="who">{{ username }}</span></div>
@@ -78,13 +93,17 @@ button.small{padding:4px 10px;font-size:11px;font-weight:normal}
       <button id="encBtn">🔐 ENCRYPT</button>
       <button id="decBtn">🔓 DECRYPT</button>
       <button id="copyBtn">📋 COPY OUTPUT</button>
+      <button id="qrBtn" disabled>📲 QR CODE</button>
+      <button id="saveBtn" disabled>💾 SAVE .MPC</button>
+      <button id="loadBtn">📂 LOAD .MPC</button>
+      <input type="file" id="loadFile" accept=".mpc" style="display:none">
       <button id="clearBtn">🗑️ CLEAR</button>
       <button id="fullBtn">🖥️ FULLSCREEN</button>
     </div>
 
     <div class="hint">
-      ⚠️ AES-256-GCM output is tamper-proof. If modified, decryption fails with an authentication error.
-      <br>Passwords are never sent to the server. All encryption happens in your browser.
+      ⚠️ AES-256-GCM output is tamper-proof. Passwords are never sent to the server — all encryption happens in your browser.
+      <br>📲 QR and 💾 .MPC only work with AES-256-GCM output (they carry the full MPC1 payload).
     </div>
   </div>
 
@@ -107,7 +126,25 @@ button.small{padding:4px 10px;font-size:11px;font-weight:normal}
   </div>
 </div>
 
+<!-- QR Modal -->
+<div id="qrModal" class="modal">
+  <div class="modal-box">
+    <h2>📲 MPC SECURE MESSAGE</h2>
+    <p>Scan with any QR reader to copy the encrypted MPC1 payload.</p>
+    <div class="qr-holder" id="qrHolder"></div>
+    <div class="actions">
+      <button class="small" id="qrDownload">⬇️ DOWNLOAD PNG</button>
+      <button class="small" id="qrClose">✖ CLOSE</button>
+    </div>
+    <div class="warn">
+      🔐 This QR contains the <b>encrypted</b> message only.<br>
+      Share the <b>password separately</b> (voice call, in person).
+    </div>
+  </div>
+</div>
+
 <script>
+/* ---------- Matrix rain ---------- */
 const c=document.getElementById('matrix'),x=c.getContext('2d');
 function resize(){c.width=innerWidth;c.height=innerHeight;}
 resize();addEventListener('resize',resize);
@@ -123,6 +160,7 @@ setInterval(()=>{
   }
 },40);
 
+/* ---------- UI refs ---------- */
 const modeSel=document.getElementById('mode');
 const pwRow=document.getElementById('passwordRow');
 const shiftRow=document.getElementById('shiftRow');
@@ -134,20 +172,32 @@ const out=document.getElementById('out');
 const statusEl=document.getElementById('status');
 const msg=document.getElementById('msg');
 const hist=document.getElementById('hist');
+const qrBtn=document.getElementById('qrBtn');
+const saveBtn=document.getElementById('saveBtn');
+const loadBtn=document.getElementById('loadBtn');
+const loadFile=document.getElementById('loadFile');
 
 const showMsg=(t,cls='ok')=>{
   msg.textContent=t;msg.className='msg '+cls;msg.style.display='block';
   setTimeout(()=>{msg.style.display='none';},4000);
 };
 
+function refreshActionButtons(){
+  const isAesPayload = out.value.startsWith('MPC1.');
+  qrBtn.disabled = !isAesPayload;
+  saveBtn.disabled = !isAesPayload;
+}
+
 modeSel.onchange=()=>{
   const m=modeSel.value;
   pwRow.style.display=(m==='secure')?'flex':'none';
   shiftRow.style.display=(m==='caesar')?'flex':'none';
+  refreshActionButtons();
 };
 shift.oninput=()=>shiftVal.textContent=shift.value;
+out.addEventListener('input',refreshActionButtons);
 
-/* ------------ Web Crypto (AES-256-GCM) ------------ */
+/* ---------- Web Crypto (AES-256-GCM) ---------- */
 const b64=(buf)=>btoa(String.fromCharCode(...new Uint8Array(buf)));
 const unb64=(s)=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 
@@ -188,7 +238,7 @@ async function aesDecrypt(payload,password){
   }catch{ throw new Error('AUTHENTICATION FAILED — wrong password or modified message'); }
 }
 
-/* ------------ Educational ciphers ------------ */
+/* ---------- Educational ciphers ---------- */
 function caesar(t,s,dec=false){
   if(dec)s=-s;s=((s%26)+26)%26;
   return t.replace(/[a-zA-Z]/g,ch=>{
@@ -210,6 +260,7 @@ const RMORSE=Object.fromEntries(Object.entries(MORSE).map(([k,v])=>[v,k]));
 const morseE=t=>[...t.toUpperCase()].map(c=>MORSE[c]||c).join(' ');
 const morseD=t=>t.split(' ').map(m=>RMORSE[m]||m).join('');
 
+/* ---------- Encrypt / decrypt ---------- */
 async function run(action){
   const t=inp.value;
   if(!t){showMsg('Nothing to process','err');return;}
@@ -239,11 +290,13 @@ async function run(action){
     }
     out.value=result;
     statusEl.textContent='done';
+    refreshActionButtons();
     showMsg(action==='encrypt'?'🔐 Encrypted':'🔓 Decrypted','ok');
     addHistory(action,m,t,result);
   }catch(e){
     statusEl.textContent='error';
     out.value='';
+    refreshActionButtons();
     showMsg('❌ '+e.message,'err');
   }
 }
@@ -258,18 +311,25 @@ function addHistory(action,mode,input,output){
   while(hist.children.length>15)hist.removeChild(hist.lastChild);
 }
 
+/* ---------- Buttons ---------- */
 document.getElementById('encBtn').onclick=()=>run('encrypt');
 document.getElementById('decBtn').onclick=()=>run('decrypt');
+
 document.getElementById('copyBtn').onclick=async()=>{
   if(!out.value)return;
   try{await navigator.clipboard.writeText(out.value);showMsg('📋 Copied','ok');}
   catch{out.select();document.execCommand('copy');showMsg('📋 Copied','ok');}
 };
-document.getElementById('clearBtn').onclick=()=>{inp.value='';out.value='';statusEl.textContent='idle';};
+
+document.getElementById('clearBtn').onclick=()=>{
+  inp.value='';out.value='';statusEl.textContent='idle';refreshActionButtons();
+};
+
 document.getElementById('fullBtn').onclick=()=>{
   if(!document.fullscreenElement)document.documentElement.requestFullscreen();
   else document.exitFullscreen();
 };
+
 document.getElementById('randomPw').onclick=()=>{
   const charset='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+';
   const buf=new Uint32Array(20);crypto.getRandomValues(buf);
@@ -277,13 +337,121 @@ document.getElementById('randomPw').onclick=()=>{
   password.value=pw;password.type='text';
   showMsg('🔑 Random password generated — copy and share safely!','ok');
 };
+
 document.getElementById('logout').onclick=async()=>{
   await fetch('/api/logout',{method:'POST',credentials:'include'});
   location.href='/login';
 };
 document.getElementById('pwBtn').onclick=()=>location.href='/change-password';
 
+/* ---------- QR CODE ---------- */
+const qrModal=document.getElementById('qrModal');
+const qrHolder=document.getElementById('qrHolder');
+
+qrBtn.onclick=()=>{
+  const payload=out.value.trim();
+  if(!payload.startsWith('MPC1.')){showMsg('Generate an AES-256-GCM message first','err');return;}
+  qrHolder.innerHTML='';
+
+  // Very long payloads don't fit well in QR (max ~2900 bytes at low ECC)
+  // Show a warning if large but still attempt.
+  const tooBig=payload.length>2500;
+
+  try{
+    new QRCode(qrHolder,{
+      text:payload,
+      width:320,
+      height:320,
+      colorDark:'#000',
+      colorLight:'#fff',
+      correctLevel: QRCode.CorrectLevel.L
+    });
+  }catch(e){
+    showMsg('QR generation failed: message too large','err');
+    return;
+  }
+  qrModal.classList.add('open');
+  if(tooBig){
+    showMsg('⚠️ Large payload — QR may be dense. Consider .mpc file for very long messages.','err');
+  }
+};
+
+document.getElementById('qrClose').onclick=()=>qrModal.classList.remove('open');
+qrModal.onclick=(e)=>{if(e.target===qrModal)qrModal.classList.remove('open');};
+
+document.getElementById('qrDownload').onclick=()=>{
+  const canvas=qrHolder.querySelector('canvas');
+  if(!canvas){showMsg('No QR to download','err');return;}
+  const link=document.createElement('a');
+  link.download='mpc-message-qr.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+};
+
+/* ---------- .MPC FILE SAVE ---------- */
+saveBtn.onclick=()=>{
+  const payload=out.value.trim();
+  if(!payload.startsWith('MPC1.')){showMsg('Generate an AES-256-GCM message first','err');return;}
+
+  // Simple .mpc format:
+  //   First line: header
+  //   Rest: MPC1 payload
+  const header='-----BEGIN MPC SECURE MESSAGE-----';
+  const footer='-----END MPC SECURE MESSAGE-----';
+  const content=`${header}\n${payload}\n${footer}\n`;
+
+  const blob=new Blob([content],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  link.download=`mpc-message-${stamp}.mpc`;
+  link.href=url;
+  link.click();
+  URL.revokeObjectURL(url);
+  showMsg('💾 Saved as .mpc file','ok');
+};
+
+/* ---------- .MPC FILE LOAD ---------- */
+loadBtn.onclick=()=>loadFile.click();
+
+loadFile.onchange=(e)=>{
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=(ev)=>{
+    let text=ev.target.result;
+
+    // Extract MPC1 payload from .mpc wrapper if present
+    const begin='-----BEGIN MPC SECURE MESSAGE-----';
+    const end='-----END MPC SECURE MESSAGE-----';
+    const bIdx=text.indexOf(begin);
+    const eIdx=text.indexOf(end);
+    if(bIdx!==-1 && eIdx!==-1){
+      text=text.slice(bIdx+begin.length,eIdx).trim();
+    } else {
+      text=text.trim();
+    }
+
+    if(!text.startsWith('MPC1.')){
+      showMsg('Not a valid .mpc file','err');
+      return;
+    }
+
+    // Switch to secure mode, put payload in input
+    modeSel.value='secure';
+    modeSel.onchange();
+    inp.value=text;
+    out.value='';
+    refreshActionButtons();
+    showMsg('📂 Loaded. Enter password and click DECRYPT.','ok');
+  };
+  reader.readAsText(file);
+  loadFile.value=''; // allow re-selecting same file
+};
+
+/* ---------- Init ---------- */
 modeSel.onchange();
+refreshActionButtons();
 </script>
 </body>
 </html>
