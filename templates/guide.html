@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MPC_CIPHER_TERMINAL — User Guide</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:#0f0;font-family:'Courier New',monospace;min-height:100vh;line-height:1.6}
+#matrix{position:fixed;inset:0;z-index:0;opacity:.10;pointer-events:none}
+.wrap{position:relative;z-index:2;max-width:900px;margin:20px auto;padding:24px;background:rgba(0,0,0,.9);border:2px solid #0f0;border-radius:14px;box-shadow:0 0 30px rgba(0,255,0,.25)}
+.bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding-bottom:14px;border-bottom:1px solid #0f0;margin-bottom:20px}
+.bar h1{font-size:18px;letter-spacing:2px;text-shadow:0 0 10px #0f0}
+.bar .sub{font-size:11px;opacity:.7}
+button,a.btn{background:#001a00;color:#0f0;border:1px solid #0f0;padding:8px 14px;font-family:inherit;font-weight:bold;cursor:pointer;border-radius:6px;transition:.2s;text-decoration:none;font-size:12px;display:inline-block}
+button:hover,a.btn:hover{background:#0f0;color:#000}
+h2{font-size:15px;margin:26px 0 10px;letter-spacing:1px;border-bottom:1px dashed #0f0;padding-bottom:6px}
+h3{font-size:13px;margin:18px 0 8px;color:#0f0}
+p,li{font-size:13px;margin-bottom:8px}
+ul,ol{padding-left:22px;margin-bottom:12px}
+code{background:#001a00;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px}
+.box{background:#0a0a0a;border:1px solid #0f0;border-radius:8px;padding:14px;margin:12px 0}
+.warn{background:#330;border:1px solid #ff0;color:#ff0;padding:12px;border-radius:8px;font-size:12px;margin:12px 0}
+.ok{background:#0f01;border:1px solid #0f0;color:#0f0;padding:12px;border-radius:8px;font-size:12px;margin:12px 0}
+.err{background:#300;border:1px solid #f55;color:#f55;padding:12px;border-radius:8px;font-size:12px;margin:12px 0}
+.step{display:flex;gap:12px;margin:10px 0}
+.step .num{flex:0 0 28px;height:28px;background:#0f0;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px}
+.step .txt{flex:1;padding-top:2px}
+table{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}
+th,td{border:1px solid #0f0;padding:8px;text-align:left}
+th{background:#001a00}
+.footer{text-align:center;font-size:10px;opacity:.5;margin-top:24px;border-top:1px solid #0f022;padding-top:14px}
+.toc{background:#0a0a0a;border:1px solid #0f0;border-radius:8px;padding:12px;margin-bottom:20px;font-size:12px}
+.toc a{color:#0f0;text-decoration:none;margin-right:14px;display:inline-block;margin-bottom:6px}
+.toc a:hover{text-decoration:underline}
+@media(max-width:600px){.wrap{padding:16px;margin:10px}h1{font-size:15px}}
+</style>
+</head>
+<body>
+<canvas id="matrix"></canvas>
+
+<div class="wrap">
+  <div class="bar">
+    <div>
+      <h1>📘 MPC_CIPHER_TERMINAL — USER GUIDE</h1>
+      <div class="sub">v8.0 • AES-256-GCM • Secure Message System</div>
+    </div>
+    <a class="btn" href="/">← BACK TO TOOL</a>
+  </div>
+
+  <div class="toc">
+    <b>JUMP TO:</b><br>
+    <a href="#what">What it is</a>
+    <a href="#login">Login</a>
+    <a href="#encrypt">Encrypting</a>
+    <a href="#decrypt">Decrypting</a>
+    <a href="#qr">QR codes</a>
+    <a href="#mpc">.mpc files</a>
+    <a href="#share">Safe sharing</a>
+    <a href="#ciphers">Ciphers explained</a>
+    <a href="#rules">Golden rules</a>
+  </div>
+
+  <!-- ============ WHAT IT IS ============ -->
+  <h2 id="what">🎯 What This Tool Is</h2>
+  <p>MPC_CIPHER_TERMINAL is a browser-based secure message tool. You type a message, enter a password, and the tool turns it into an encrypted package that <b>only someone with the same password can read</b>.</p>
+  <p>The encryption happens <b>inside your browser</b>. Your password and your plaintext message <b>never reach the server</b>.</p>
+
+  <div class="ok">
+    ✅ <b>Real, authenticated encryption</b> — AES-256-GCM with PBKDF2 key derivation (600,000 iterations).
+  </div>
+
+  <!-- ============ LOGIN ============ -->
+  <h2 id="login">🔑 Login</h2>
+  <p>Accounts are created by the administrator only. There is no public registration.</p>
+  <div class="step"><div class="num">1</div><div class="txt">Open the tool's login page.</div></div>
+  <div class="step"><div class="num">2</div><div class="txt">Enter the username and password the admin gave you.</div></div>
+  <div class="step"><div class="num">3</div><div class="txt">On first login, you will be asked to <b>change your password</b>. Choose a strong one (12+ characters).</div></div>
+
+  <div class="warn">⚠️ If you forget your password, only the admin can reset it. There is no self-service recovery.</div>
+
+  <!-- ============ ENCRYPTING ============ -->
+  <h2 id="encrypt">🔐 Encrypting a Message</h2>
+  <div class="step"><div class="num">1</div><div class="txt">In <b>MODE</b>, choose <code>AES-256-GCM (Secure)</code>.</div></div>
+  <div class="step"><div class="num">2</div><div class="txt">Type a strong password in the <b>PASSWORD</b> field. Or click <b>🎲 RANDOM</b> to generate one.</div></div>
+  <div class="step"><div class="num">3</div><div class="txt">Type your message in the <b>INPUT</b> box on the left.</div></div>
+  <div class="step"><div class="num">4</div><div class="txt">Click <b>🔐 ENCRYPT</b>.</div></div>
+  <div class="step"><div class="num">5</div><div class="txt">The <b>OUTPUT</b> box on the right will show your encrypted message — a string starting with <code>MPC1.…</code></div></div>
+
+  <div class="ok">
+    ✅ That <code>MPC1.…</code> string is what you share. It is safe to send over any channel.
+  </div>
+
+  <h3>Example</h3>
+  <div class="box">
+<pre>INPUT:    Meet me at 8pm
+PASSWORD: BlueSky_Messi2024!
+OUTPUT:   MPC1.eyJ2IjoxLCJhbGciOiJBRVMtMjU2LUdDTSIsImtkZiI6IlBCS0RGMi1TSEEyNTYtNjAwMDAwIiwic2FsdCI6Ii4uLiJ9</pre>
+  </div>
+
+  <!-- ============ DECRYPTING ============ -->
+  <h2 id="decrypt">🔓 Decrypting a Message</h2>
+  <div class="step"><div class="num">1</div><div class="txt">In <b>MODE</b>, keep <code>AES-256-GCM (Secure)</code> selected.</div></div>
+  <div class="step"><div class="num">2</div><div class="txt">Enter the <b>same password</b> the sender used. (Ask them for it separately.)</div></div>
+  <div class="step"><div class="num">3</div><div class="txt">Paste the <code>MPC1.…</code> string into the <b>INPUT</b> box.</div></div>
+  <div class="step"><div class="num">4</div><div class="txt">Click <b>🔓 DECRYPT</b>.</div></div>
+  <div class="step"><div class="num">5</div><div class="txt">The <b>OUTPUT</b> box shows the original message.</div></div>
+
+  <div class="err">
+    ❌ <b>If you see:</b> <code>AUTHENTICATION FAILED — wrong password or modified message</code><br>
+    It means either the password is wrong, or the encrypted text was altered in transit. Do not trust the message.
+  </div>
+
+  <!-- ============ QR CODES ============ -->
+  <h2 id="qr">📲 QR Codes</h2>
+  <p>You can turn any encrypted message into a QR code that can be scanned by a phone.</p>
+
+  <div class="step"><div class="num">1</div><div class="txt">Encrypt a message as shown above. The <b>OUTPUT</b> box should start with <code>MPC1.</code></div></div>
+  <div class="step"><div class="num">2</div><div class="txt">Click <b>📲 QR CODE</b>. A QR appears on screen.</div></div>
+  <div class="step"><div class="num">3</div><div class="txt">Click <b>⬇️ DOWNLOAD PNG</b> to save the QR image.</div></div>
+  <div class="step"><div class="num">4</div><div class="txt">Share the QR image with your recipient.</div></div>
+  <div class="step"><div class="num">5</div><div class="txt">They scan it, copy the <code>MPC1.…</code> string, paste into the tool, enter the password, and read the message.</div></div>
+
+  <div class="warn">
+    ⚠️ <b>The QR contains the encrypted message only — never the password.</b><br>
+    Share the password through a <b>different channel</b> (voice call, in person).
+  </div>
+
+  <div class="box">
+    <b>Best used for:</b> short messages (under ~2,000 characters). Long messages create very dense QR codes that are hard to scan.
+  </div>
+
+  <!-- ============ MPC FILES ============ -->
+  <h2 id="mpc">💾 .mpc Files</h2>
+  <p>A <code>.mpc</code> file is a portable file that contains your encrypted message. Useful for very long messages or attachments via email.</p>
+
+  <h3>To save a .mpc file</h3>
+  <div class="step"><div class="num">1</div><div class="txt">Encrypt a message as shown above.</div></div>
+  <div class="step"><div class="num">2</div><div class="txt">Click <b>💾 SAVE .MPC</b>. A file downloads to your device, named <code>mpc-message-YYYY-MM-DD.mpc</code>.</div></div>
+  <div class="step"><div class="num">3</div><div class="txt">Share the file with your recipient (email, file transfer, USB, etc.).</div></div>
+
+  <h3>To load a .mpc file</h3>
+  <div class="step"><div class="num">1</div><div class="txt">Click <b>📂 LOAD .MPC</b>.</div></div>
+  <div class="step"><div class="num">2</div><div class="txt">Select the <code>.mpc</code> file.</div></div>
+  <div class="step"><div class="num">3</div><div class="txt">The encrypted payload loads into the <b>INPUT</b> box.</div></div>
+  <div class="step"><div class="num">4</div><div class="txt">Enter the password and click <b>🔓 DECRYPT</b>.</div></div>
+
+  <div class="warn">
+    ⚠️ The <code>.mpc</code> file contains the <b>encrypted</b> message only. The password must be shared separately.
+  </div>
+
+  <h3>What a .mpc file looks like</h3>
+  <div class="box">
+<pre>-----BEGIN MPC SECURE MESSAGE-----
+MPC1.eyJ2IjoxLCJhbGciOiJBRVMtMjU2LUdDTSIsImtkZiI6IlBCS0RGMi1TSEEyNTYtNjAwMDAwIiwic2FsdCI6Ii4uLiJ9
+-----END MPC SECURE MESSAGE-----</pre>
+  </div>
+
+  <!-- ============ SAFE SHARING ============ -->
+  <h2 id="share">🛡️ Safe Sharing — The Two-Channel Rule</h2>
+  <p>The encrypted message is safe to share publicly. The <b>password</b> is what protects it. If someone gets both, they can read everything.</p>
+
+  <div class="ok">
+    ✅ <b>Two-Channel Rule</b><br>
+    Send the encrypted payload through <b>one</b> channel (email, QR, WhatsApp).<br>
+    Send the password through a <b>different</b> channel (voice call, in person).<br>
+    This way, if one channel is compromised, the message stays safe.
+  </div>
+
+  <div class="err">
+    ❌ <b>Never do this:</b> Send the encrypted message AND the password in the same email or the same chat. That defeats the entire purpose.
+  </div>
+
+  <h3>Recommended scenarios</h3>
+  <table>
+    <tr><th>You want to…</th><th>Payload channel</th><th>Password channel</th></tr>
+    <tr><td>Send a secret to a friend</td><td>WhatsApp/Signal message</td><td>Voice call</td></tr>
+    <tr><td>Email a confidential document note</td><td>Email</td><td>Phone call</td></tr>
+    <tr><td>Share via paper handout</td><td>Printed QR code</td><td>Said aloud in person</td></tr>
+    <tr><td>Store a message for later</td><td>Saved as .mpc file</td><td>Written in password manager</td></tr>
+  </table>
+
+  <!-- ============ CIPHERS EXPLAINED ============ -->
+  <h2 id="ciphers">🔧 Ciphers Explained</h2>
+  <p>The tool offers two categories: <b>secure</b> and <b>educational</b>. They are not the same thing.</p>
+
+  <h3>🔐 AES-256-GCM — The Secure Option</h3>
+  <ul>
+    <li>Same encryption used by banks, governments, and the US military.</li>
+    <li>Requires a password (12+ characters).</li>
+    <li>Tamper-proof: any alteration to the encrypted message will be detected.</li>
+    <li>Produces the <code>MPC1.…</code> format used by QR and .mpc.</li>
+    <li><b>Use this for anything you actually need to protect.</b></li>
+  </ul>
+
+  <h3>🔒 Educational Ciphers — For Learning Only</h3>
+  <p>These are historic or teaching ciphers. They can be broken by anyone in seconds. Use them to learn how encryption works, or to play with friends.</p>
+  <table>
+    <tr><th>Cipher</th><th>Example (Hello →)</th><th>Safe for secrets?</th></tr>
+    <tr><td>Caesar</td><td>Khoor</td><td>❌ No</td></tr>
+    <tr><td>Atbash</td><td>Svool</td><td>❌ No</td></tr>
+    <tr><td>ROT13</td><td>Uryyb</td><td>❌ No</td></tr>
+    <tr><td>Reverse</td><td>olleH</td><td>❌ No</td></tr>
+    <tr><td>Base64</td><td>SGVsbG8=</td><td>❌ No (encoding only)</td></tr>
+    <tr><td>Binary</td><td>01001000…</td><td>❌ No (encoding only)</td></tr>
+    <tr><td>Hexadecimal</td><td>48 65 6c 6c 6f</td><td>❌ No (encoding only)</td></tr>
+    <tr><td>Morse</td><td>.... . .-.. .-.. ---</td><td>❌ No</td></tr>
+    <tr><td><b>AES-256-GCM</b></td><td><code>MPC1.…</code></td><td>✅ <b>Yes</b></td></tr>
+  </table>
+
+  <div class="warn">
+    ⚠️ Do not confuse Base64, Binary, or Hex with "encryption." They are just different ways to write data. Anyone can decode them instantly.
+  </div>
+
+  <!-- ============ GOLDEN RULES ============ -->
+  <h2 id="rules">📌 Golden Rules</h2>
+  <ol>
+    <li><b>Use AES-256-GCM</b> for anything that matters. Ignore the other ciphers for real secrets.</li>
+    <li><b>Use strong passwords</b> — 12+ characters, mix of letters, numbers, symbols.</li>
+    <li><b>Never reuse passwords</b> between different messages. Generate a new one each time with the 🎲 RANDOM button.</li>
+    <li><b>Follow the Two-Channel Rule.</b> Send the encrypted message and the password through different channels.</li>
+    <li><b>If decryption fails</b>, do not trust the message. It was either wrong-password or tampered with.</li>
+    <li><b>Do not share your login credentials.</b> If you suspect they leaked, tell the admin immediately.</li>
+    <li><b>Remember: no system is "impossible to hack."</b> This tool uses real, strong crypto — but security is a practice, not a product.</li>
+  </ol>
+
+  <div class="footer">
+    👨‍💻 <b>MPC_CIPHER_TERMINAL v8.0</b> — Created by <b>Mugisha Pc</b><br>
+    🔐 AES-256-GCM • Argon2id • PostgreSQL • Render<br>
+    📡 <a href="/" style="color:#0f0">Return to the tool</a>
+  </div>
+</div>
+
+<script>
+const c=document.getElementById('matrix'),x=c.getContext('2d');
+function resize(){c.width=innerWidth;c.height=innerHeight;}
+resize();addEventListener('resize',resize);
+const chars='01アイウエオカキクケコ0123456789#';
+const fs=13;let cols=Math.floor(innerWidth/fs),drops=[...Array(cols)].map(()=>Math.random()*innerHeight/fs);
+setInterval(()=>{
+  x.fillStyle='rgba(0,0,0,0.05)';x.fillRect(0,0,c.width,c.height);
+  x.fillStyle='#0f0';x.font=fs+'px monospace';
+  for(let i=0;i<drops.length;i++){
+    x.fillText(chars[Math.random()*chars.length|0],i*fs,drops[i]*fs);
+    if(drops[i]*fs>c.height&&Math.random()>0.975)drops[i]=0;
+    drops[i]++;
+  }
+},40);
+</script>
+</body>
+</html>

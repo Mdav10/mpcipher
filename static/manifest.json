@@ -1,0 +1,42 @@
+{
+  "name": "MPC_CIPHER_TERMINAL",
+  "short_name": "MPC Cipher",
+  "description": "Secure message tool with AES-256-GCM encryption by Mugisha Pc",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#000000",
+  "theme_color": "#00ff00",
+  "categories": ["security", "utilities", "productivity"],
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Message",
+      "short_name": "Encrypt",
+      "description": "Encrypt a new secure message",
+      "url": "/?action=encrypt",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "User Guide",
+      "short_name": "Guide",
+      "description": "Read how to use MPC_CIPHER_TERMINAL",
+      "url": "/guide",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

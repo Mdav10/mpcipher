@@ -239,6 +239,11 @@ def home():
 def login_page():
     return render_template("login.html")
 
+
+@app.route("/guide")
+def guide_page():
+    return render_template("guide.html")
+
 @app.route("/change-password")
 def change_pw_page():
     token = request.cookies.get("mpc_session")
