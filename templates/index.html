@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>MPC_CIPHER_TERMINAL v8.0</title>
 
-<!-- PWA -->
 <link rel="manifest" href="/static/manifest.json">
 <meta name="theme-color" content="#00ff00">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +12,6 @@
 <meta name="apple-mobile-web-app-title" content="MPC Cipher">
 <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
 
-<!-- QR code generator -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
@@ -52,11 +50,10 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .modal-box .actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
 .warn{font-size:11px;color:#ff0;margin-top:12px;line-height:1.5}
 
-/* PWA install banner */
 #pwaBanner{display:none;background:#001a00;border:1px solid #0f0;border-radius:10px;padding:12px;margin-bottom:16px;align-items:center;gap:12px;flex-wrap:wrap}
 #pwaBanner.show{display:flex}
 
-/* ---------- Global button loading spinner ---------- */
+/* ---- Button spinner ---- */
 button.loading{position:relative;color:transparent !important;pointer-events:none;opacity:.85}
 button.loading::after{
   content:'';
@@ -71,7 +68,6 @@ button.loading::after{
 }
 @keyframes btnspin{to{transform:rotate(360deg)}}
 
-/* Full-screen overlay spinner for heavy operations */
 #globalLoader{
   display:none;
   position:fixed;inset:0;z-index:99999;
@@ -105,7 +101,6 @@ button.loading::after{
     <button class="small" id="logout">LOGOUT</button>
   </div>
 
-  <!-- PWA Install Banner -->
   <div id="pwaBanner">
     <div style="flex:1;font-size:12px">
       📱 <b>Install MPC Cipher as an App</b><br>
@@ -181,10 +176,7 @@ button.loading::after{
   </div>
 </div>
 
-<!-- Global loading overlay -->
-<div id="globalLoader">
-  <div class="ring"></div>
-</div>
+<div id="globalLoader"><div class="ring"></div></div>
 
 <div id="qrModal" class="modal">
   <div class="modal-box">
@@ -203,6 +195,32 @@ button.loading::after{
 </div>
 
 <script>
+/* ============================================================
+   GLOBAL BUTTON SPINNER — attached BEFORE other logic
+   so it always fires when a button is clicked
+   ============================================================ */
+(function attachGlobalSpinner(){
+  function spin(btn){
+    if(!btn || btn.disabled) return;
+    if(btn.id === 'loadBtn') return;                  // opens file picker
+    if(btn.classList.contains('loading')) return;
+    btn.classList.add('loading');
+    setTimeout(()=>btn.classList.remove('loading'), 700);
+  }
+
+  // Capture phase — runs before any other click handler
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest && e.target.closest('button');
+    if(btn) spin(btn);
+  }, true);
+
+  // Also fire on programmatic .click() via touch/pointer for mobile
+  document.addEventListener('pointerdown', function(e){
+    const btn = e.target.closest && e.target.closest('button');
+    if(btn) spin(btn);
+  }, true);
+})();
+
 /* ---------- Matrix rain ---------- */
 const c=document.getElementById('matrix'),x=c.getContext('2d');
 function resize(){c.width=innerWidth;c.height=innerHeight;}
@@ -256,7 +274,7 @@ modeSel.onchange=()=>{
 shift.oninput=()=>shiftVal.textContent=shift.value;
 out.addEventListener('input',refreshActionButtons);
 
-/* ---------- Web Crypto (AES-256-GCM) ---------- */
+/* ---------- Web Crypto ---------- */
 const b64=(buf)=>btoa(String.fromCharCode(...new Uint8Array(buf)));
 const unb64=(s)=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 
@@ -394,7 +412,7 @@ document.getElementById('randomPw').onclick=()=>{
   const buf=new Uint32Array(20);crypto.getRandomValues(buf);
   let pw='';for(let i=0;i<20;i++)pw+=charset[buf[i]%charset.length];
   password.value=pw;password.type='text';
-  showMsg('🔑 Random password generated — copy and share safely!','ok');
+  showMsg('🔑 Random password generated','ok');
 };
 
 document.getElementById('logout').onclick=async()=>{
@@ -404,7 +422,7 @@ document.getElementById('logout').onclick=async()=>{
 document.getElementById('pwBtn').onclick=()=>location.href='/change-password';
 document.getElementById('guideBtn').onclick=()=>location.href='/guide';
 
-/* ---------- QR code ---------- */
+/* ---------- QR ---------- */
 const qrModal=document.getElementById('qrModal');
 const qrHolder=document.getElementById('qrHolder');
 
@@ -412,22 +430,10 @@ qrBtn.onclick=()=>{
   const payload=out.value.trim();
   if(!payload.startsWith('MPC1.')){showMsg('Generate an AES-256-GCM message first','err');return;}
   qrHolder.innerHTML='';
-  const tooBig=payload.length>2500;
   try{
-    new QRCode(qrHolder,{
-      text:payload,
-      width:320,
-      height:320,
-      colorDark:'#000',
-      colorLight:'#fff',
-      correctLevel:QRCode.CorrectLevel.L
-    });
-  }catch(e){
-    showMsg('QR generation failed: message too large','err');
-    return;
-  }
+    new QRCode(qrHolder,{text:payload,width:320,height:320,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.L});
+  }catch(e){showMsg('QR generation failed: message too large','err');return;}
   qrModal.classList.add('open');
-  if(tooBig)showMsg('⚠️ Large payload — QR may be dense. Consider .mpc file for very long messages.','err');
 };
 
 document.getElementById('qrClose').onclick=()=>qrModal.classList.remove('open');
@@ -442,7 +448,7 @@ document.getElementById('qrDownload').onclick=()=>{
   link.click();
 };
 
-/* ---------- .mpc file save ---------- */
+/* ---------- .mpc save ---------- */
 saveBtn.onclick=()=>{
   const payload=out.value.trim();
   if(!payload.startsWith('MPC1.')){showMsg('Generate an AES-256-GCM message first','err');return;}
@@ -460,7 +466,7 @@ saveBtn.onclick=()=>{
   showMsg('💾 Saved as .mpc file','ok');
 };
 
-/* ---------- .mpc file load ---------- */
+/* ---------- .mpc load ---------- */
 loadBtn.onclick=()=>loadFile.click();
 
 loadFile.onchange=(e)=>{
@@ -473,17 +479,11 @@ loadFile.onchange=(e)=>{
     const end='-----END MPC SECURE MESSAGE-----';
     const bIdx=text.indexOf(begin);
     const eIdx=text.indexOf(end);
-    if(bIdx!==-1 && eIdx!==-1){
-      text=text.slice(bIdx+begin.length,eIdx).trim();
-    } else {
-      text=text.trim();
-    }
+    if(bIdx!==-1 && eIdx!==-1) text=text.slice(bIdx+begin.length,eIdx).trim();
+    else text=text.trim();
     if(!text.startsWith('MPC1.')){showMsg('Not a valid .mpc file','err');return;}
-    modeSel.value='secure';
-    modeSel.onchange();
-    inp.value=text;
-    out.value='';
-    refreshActionButtons();
+    modeSel.value='secure';modeSel.onchange();
+    inp.value=text;out.value='';refreshActionButtons();
     showMsg('📂 Loaded. Enter password and click DECRYPT.','ok');
   };
   reader.readAsText(file);
@@ -493,76 +493,30 @@ loadFile.onchange=(e)=>{
 /* ---------- PWA ---------- */
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/static/service-worker.js')
-      .then(()=>console.log('[PWA] Service worker registered'))
-      .catch(err=>console.warn('[PWA] SW failed:',err));
+    navigator.serviceWorker.register('/static/service-worker.js').catch(()=>{});
   });
 }
-
 let deferredPrompt=null;
 const pwaBanner=document.getElementById('pwaBanner');
-const pwaInstallBtn=document.getElementById('pwaInstallBtn');
-const pwaDismissBtn=document.getElementById('pwaDismissBtn');
-
 window.addEventListener('beforeinstallprompt',(e)=>{
-  e.preventDefault();
-  deferredPrompt=e;
-  if(!sessionStorage.getItem('pwa_dismissed')){
-    pwaBanner.classList.add('show');
-  }
+  e.preventDefault();deferredPrompt=e;
+  if(!sessionStorage.getItem('pwa_dismissed')) pwaBanner.classList.add('show');
 });
-
-pwaInstallBtn.addEventListener('click',async()=>{
+document.getElementById('pwaInstallBtn').addEventListener('click',async()=>{
   if(!deferredPrompt)return;
   deferredPrompt.prompt();
-  const {outcome}=await deferredPrompt.userChoice;
-  console.log('[PWA] Install outcome:',outcome);
-  deferredPrompt=null;
-  pwaBanner.classList.remove('show');
+  await deferredPrompt.userChoice;
+  deferredPrompt=null;pwaBanner.classList.remove('show');
 });
-
-pwaDismissBtn.addEventListener('click',()=>{
+document.getElementById('pwaDismissBtn').addEventListener('click',()=>{
   pwaBanner.classList.remove('show');
   sessionStorage.setItem('pwa_dismissed','1');
 });
-
-window.addEventListener('appinstalled',()=>{
-  console.log('[PWA] App installed');
-  pwaBanner.classList.remove('show');
-});
+window.addEventListener('appinstalled',()=>pwaBanner.classList.remove('show'));
 
 /* ---------- Init ---------- */
 modeSel.onchange();
 refreshActionButtons();
-
-/* ---------- GLOBAL BUTTON SPINNER ---------- */
-document.addEventListener('click',(e)=>{
-  const btn=e.target.closest('button');
-  if(!btn)return;
-  if(btn.disabled)return;
-  if(btn.id==='loadBtn')return;              // opens file picker
-  if(btn.classList.contains('loading'))return;
-  btn.classList.add('loading');
-  setTimeout(()=>btn.classList.remove('loading'),700);
-});
-
-/* ---------- GLOBAL OVERLAY LOADER ---------- */
-async function withLoader(fn){
-  const l=document.getElementById('globalLoader');
-  l.classList.add('open');
-  try{return await fn();}
-  finally{l.classList.remove('open');}
-}
-
-/* Wrap heavy AES ops with overlay (input > 500 chars) */
-const _origRun=run;
-run=async function(action){
-  const m=modeSel.value;
-  if(m==='secure' && inp.value.length>500){
-    return withLoader(()=>_origRun(action));
-  }
-  return _origRun(action);
-};
 </script>
 </body>
 </html>
