@@ -4,23 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>MPC_CIPHER_TERMINAL v8.0</title>
-
 <link rel="manifest" href="/static/manifest.json">
 <meta name="theme-color" content="#00ff00">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="MPC Cipher">
 <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha256-4X8z0kFjF2i6DqZ5rXbF8kO2q7T6zV9wQ2q7T6zV9w=" crossorigin="anonymous"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;font-family:'Courier New',Consolas,monospace;min-height:100vh;color:#0f0}
 #matrix{position:fixed;inset:0;z-index:0;opacity:.12;pointer-events:none}
 .wrap{position:relative;z-index:2;max-width:1600px;margin:16px auto;padding:18px;background:rgba(0,0,0,.85);border:2px solid #0f0;border-radius:14px;box-shadow:0 0 30px rgba(0,255,0,.25)}
 .bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding-bottom:10px;border-bottom:1px solid #0f0;font-size:11px}
-.badge{background:#0f02;border:1px solid #0f0;padding:4px 10px;border-radius:20px;font-size:10px}
+.badge{background:#0f02;border:1px solid #0f0;padding:4px 10px;border-radius:20px;font-size:10px;cursor:pointer}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
 .term{background:#0a0a0a;border:1px solid #0f0;border-radius:10px;overflow:hidden}
 .term-h{background:#001a00;padding:10px;border-bottom:1px solid #0f0;font-weight:bold;font-size:12px;display:flex;justify-content:space-between;align-items:center}
@@ -49,94 +43,40 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .qr-holder img,.qr-holder canvas{display:block}
 .modal-box .actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
 .warn{font-size:11px;color:#ff0;margin-top:12px;line-height:1.5}
-
 #pwaBanner{display:none;background:#001a00;border:1px solid #0f0;border-radius:10px;padding:12px;margin-bottom:16px;align-items:center;gap:12px;flex-wrap:wrap}
 #pwaBanner.show{display:flex}
-
-/* Spinner on button, without blocking clicks */
 button.loading{color:transparent !important;pointer-events:none;opacity:.85}
-button.loading::after{
-  content:'';
-  position:absolute;
-  top:50%;left:50%;
-  width:16px;height:16px;
-  margin:-8px 0 0 -8px;
-  border:3px solid #0f0;
-  border-top-color:transparent;
-  border-radius:50%;
-  animation:spin .7s linear infinite;
-}
+button.loading::after{content:'';position:absolute;top:50%;left:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border:3px solid #0f0;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-/* Fullscreen overlay for slow operations */
-#globalLoader{
-  display:none;
-  position:fixed;inset:0;z-index:99999;
-  background:rgba(0,0,0,.75);backdrop-filter:blur(3px);
-  align-items:center;justify-content:center;flex-direction:column;gap:16px;
-}
+#globalLoader{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.75);backdrop-filter:blur(3px);align-items:center;justify-content:center;flex-direction:column;gap:16px}
 #globalLoader.open{display:flex}
-#globalLoader .ring{
-  width:64px;height:64px;
-  border:4px solid #0f033;
-  border-top-color:#0f0;
-  border-radius:50%;
-  animation:spin .8s linear infinite;
-  box-shadow:0 0 30px rgba(0,255,0,.4);
-}
+#globalLoader .ring{width:64px;height:64px;border:4px solid #0f033;border-top-color:#0f0;border-radius:50%;animation:spin .8s linear infinite;box-shadow:0 0 30px rgba(0,255,0,.4)}
 #globalLoader .label{color:#0f0;font-size:12px;letter-spacing:2px}
-
-/* Boot loader (app open) */
-#bootLoader{
-  position:fixed;inset:0;z-index:99998;
-  background:#000;
-  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;
-  transition:opacity .4s;
-}
+#bootLoader{position:fixed;inset:0;z-index:99998;background:#000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;transition:opacity .4s}
 #bootLoader.hide{opacity:0;pointer-events:none}
-#bootLoader .ring{
-  width:70px;height:70px;
-  border:4px solid #0f033;
-  border-top-color:#0f0;
-  border-radius:50%;
-  animation:spin .8s linear infinite;
-  box-shadow:0 0 40px rgba(0,255,0,.5);
-}
+#bootLoader .ring{width:70px;height:70px;border:4px solid #0f033;border-top-color:#0f0;border-radius:50%;animation:spin .8s linear infinite;box-shadow:0 0 40px rgba(0,255,0,.5)}
 #bootLoader .txt{color:#0f0;font-size:12px;letter-spacing:2px;opacity:.8}
-
 @media(max-width:768px){.grid{grid-template-columns:1fr}textarea{height:220px}}
 </style>
 </head>
 <body>
-
-<!-- Boot loader -->
-<div id="bootLoader">
-  <div class="ring"></div>
-  <div class="txt">LOADING MPC CIPHER…</div>
-</div>
-
+<div id="bootLoader"><div class="ring"></div><div class="txt">LOADING MPC CIPHER…</div></div>
 <canvas id="matrix"></canvas>
-
 <div class="wrap">
   <div class="bar">
     <div>🔴 MPC_CIPHER_TERMINAL v8.0</div>
     <div>🟢 AES-256-GCM</div>
     <div>🔐 AUTHENTICATED</div>
-    <div class="badge">👤 <span id="who">{{ username }}</span></div>
+    <div class="badge" id="panicWipe" title="Click to wipe screen">👤 <span id="who">{{ username }}</span></div>
     <button class="small" id="guideBtn">📘 GUIDE</button>
     <button class="small" id="pwBtn">🔑 CHANGE PASSWORD</button>
     <button class="small" id="logout">LOGOUT</button>
   </div>
-
   <div id="pwaBanner">
-    <div style="flex:1;font-size:12px">
-      📱 <b>Install MPC Cipher as an App</b><br>
-      <span style="opacity:.7;font-size:11px">Add to home screen for quick access — works offline</span>
-    </div>
+    <div style="flex:1;font-size:12px">📱 <b>Install MPC Cipher as an App</b><br><span style="opacity:.7;font-size:11px">Add to home screen for quick access</span></div>
     <button id="pwaInstallBtn" style="background:#0f0;color:#000;border-color:#0f0">⬇️ INSTALL</button>
     <button id="pwaDismissBtn" class="small" style="background:transparent;border-color:#555;color:#888">✕</button>
   </div>
-
   <div class="controls">
     <div class="row">
       <span>🔧 MODE:</span>
@@ -151,21 +91,18 @@ button.loading::after{
         <option value="hex">🔢 Hex (Encoding)</option>
         <option value="morse">📡 Morse (Encoding)</option>
       </select>
-      <span class="cat">Educational ciphers are NOT secure. Use AES-256-GCM for real secrets.</span>
+      <span class="cat">Educational ciphers are NOT secure.</span>
     </div>
-
     <div class="row" id="passwordRow">
       <span>🔑 PASSWORD:</span>
       <input type="password" id="password" placeholder="Encryption password" style="min-width:240px">
       <button class="small" id="randomPw">🎲 RANDOM</button>
     </div>
-
     <div class="row" id="shiftRow" style="display:none">
       <span>⚙️ SHIFT:</span>
       <input type="range" id="shift" min="1" max="25" value="3" style="flex:1">
       <span id="shiftVal">3</span>
     </div>
-
     <div class="row">
       <button id="encBtn">🔐 ENCRYPT</button>
       <button id="decBtn">🔓 DECRYPT</button>
@@ -177,163 +114,64 @@ button.loading::after{
       <button id="clearBtn">🗑️ CLEAR</button>
       <button id="fullBtn">🖥️ FULLSCREEN</button>
     </div>
-
-    <div class="hint">
-      ⚠️ AES-256-GCM output is tamper-proof. Passwords are never sent to the server — all encryption happens in your browser.
-      <br>📲 QR and 💾 .MPC only work with AES-256-GCM output (they carry the full MPC1 payload).
-    </div>
   </div>
-
   <div class="grid">
-    <div class="term">
-      <div class="term-h"><span>📡 INPUT</span></div>
-      <textarea id="inp" placeholder="Type or paste here..."></textarea>
-    </div>
-    <div class="term">
-      <div class="term-h"><span>🔐 OUTPUT</span><span id="status" style="font-size:10px;opacity:.7">idle</span></div>
-      <textarea id="out" readonly placeholder="Result appears here..."></textarea>
-    </div>
+    <div class="term"><div class="term-h"><span>📡 INPUT</span></div><textarea id="inp" placeholder="Type or paste here..."></textarea></div>
+    <div class="term"><div class="term-h"><span>🔐 OUTPUT</span><span id="status" style="font-size:10px;opacity:.7">idle</span></div><textarea id="out" readonly placeholder="Result appears here..."></textarea></div>
   </div>
-
   <div id="msg" class="msg" style="display:none"></div>
-
-  <div class="history">
-    <div>📜 HISTORY (session only)</div>
-    <div id="hist"></div>
-  </div>
+  <div class="history"><div>📜 HISTORY (session only)</div><div id="hist"></div></div>
 </div>
-
-<div id="globalLoader">
-  <div class="ring"></div>
-  <div class="label">PROCESSING…</div>
-</div>
-
+<div id="globalLoader"><div class="ring"></div><div class="label">PROCESSING…</div></div>
 <div id="qrModal" class="modal">
   <div class="modal-box">
     <h2>📲 MPC SECURE MESSAGE</h2>
-    <p>Scan with any QR reader to copy the encrypted MPC1 payload.</p>
+    <p>Scan with any QR reader to copy the encrypted payload.</p>
     <div class="qr-holder" id="qrHolder"></div>
     <div class="actions">
       <button class="small" id="qrDownload">⬇️ DOWNLOAD PNG</button>
       <button class="small" id="qrClose">✖ CLOSE</button>
     </div>
-    <div class="warn">
-      🔐 This QR contains the <b>encrypted</b> message only.<br>
-      Share the <b>password separately</b> (voice call, in person).
-    </div>
+    <div class="warn">🔐 This QR contains the encrypted message only.<br>Share the password separately.</div>
   </div>
 </div>
-
 <script>
-/* ---------- Boot loader hide ---------- */
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    document.getElementById('bootLoader').classList.add('hide');
-  }, 700);
-});
-
-/* ---------- Matrix rain ---------- */
+window.addEventListener('load', () => { setTimeout(() => { document.getElementById('bootLoader').classList.add('hide'); }, 700); });
 const c=document.getElementById('matrix'),x=c.getContext('2d');
 function resize(){c.width=innerWidth;c.height=innerHeight;}
 resize();addEventListener('resize',resize);
 const chars='01アイウエオカキクケコ0123456789#';
 const fs=12;let cols=Math.floor(innerWidth/fs),drops=[...Array(cols)].map(()=>Math.random()*innerHeight/fs);
-setInterval(()=>{
-  x.fillStyle='rgba(0,0,0,0.05)';x.fillRect(0,0,c.width,c.height);
-  x.fillStyle='#0f0';x.font=fs+'px monospace';
-  for(let i=0;i<drops.length;i++){
-    x.fillText(chars[Math.random()*chars.length|0],i*fs,drops[i]*fs);
-    if(drops[i]*fs>c.height&&Math.random()>0.975)drops[i]=0;
-    drops[i]++;
-  }
-},40);
-
-/* ---------- UI refs ---------- */
-const modeSel=document.getElementById('mode');
-const pwRow=document.getElementById('passwordRow');
-const shiftRow=document.getElementById('shiftRow');
-const password=document.getElementById('password');
-const shift=document.getElementById('shift');
-const shiftVal=document.getElementById('shiftVal');
-const inp=document.getElementById('inp');
-const out=document.getElementById('out');
-const statusEl=document.getElementById('status');
-const msg=document.getElementById('msg');
-const hist=document.getElementById('hist');
-const qrBtn=document.getElementById('qrBtn');
-const saveBtn=document.getElementById('saveBtn');
-const loadBtn=document.getElementById('loadBtn');
-const loadFile=document.getElementById('loadFile');
-
-const showMsg=(t,cls='ok')=>{
-  msg.textContent=t;msg.className='msg '+cls;msg.style.display='block';
-  setTimeout(()=>{msg.style.display='none';},4000);
-};
-
-function refreshActionButtons(){
-  const isAesPayload=out.value.startsWith('MPC1.');
-  qrBtn.disabled=!isAesPayload;
-  saveBtn.disabled=!isAesPayload;
-}
-
-modeSel.onchange=()=>{
-  const m=modeSel.value;
-  pwRow.style.display=(m==='secure')?'flex':'none';
-  shiftRow.style.display=(m==='caesar')?'flex':'none';
-  refreshActionButtons();
-};
+setInterval(()=>{x.fillStyle='rgba(0,0,0,0.05)';x.fillRect(0,0,c.width,c.height);x.fillStyle='#0f0';x.font=fs+'px monospace';for(let i=0;i<drops.length;i++){x.fillText(chars[Math.random()*chars.length|0],i*fs,drops[i]*fs);if(drops[i]*fs>c.height&&Math.random()>0.975)drops[i]=0;drops[i]++;}},40);
+const modeSel=document.getElementById('mode'),pwRow=document.getElementById('passwordRow'),shiftRow=document.getElementById('shiftRow'),password=document.getElementById('password'),shift=document.getElementById('shift'),shiftVal=document.getElementById('shiftVal'),inp=document.getElementById('inp'),out=document.getElementById('out'),statusEl=document.getElementById('status'),msg=document.getElementById('msg'),hist=document.getElementById('hist'),qrBtn=document.getElementById('qrBtn'),saveBtn=document.getElementById('saveBtn'),loadBtn=document.getElementById('loadBtn'),loadFile=document.getElementById('loadFile');
+const showMsg=(t,cls='ok')=>{msg.textContent=t;msg.className='msg '+cls;msg.style.display='block';setTimeout(()=>{msg.style.display='none';},4000);};
+function refreshActionButtons(){const isAesPayload=out.value.startsWith('MPC1.');qrBtn.disabled=!isAesPayload;saveBtn.disabled=!isAesPayload;}
+modeSel.onchange=()=>{const m=modeSel.value;pwRow.style.display=(m==='secure')?'flex':'none';shiftRow.style.display=(m==='caesar')?'flex':'none';refreshActionButtons();};
 shift.oninput=()=>shiftVal.textContent=shift.value;
 out.addEventListener('input',refreshActionButtons);
 
-/* ---------- Web Crypto ---------- */
+// --- SECURITY: PANIC WIPE & AUTO-LOCK ---
+function wipeScreen(){
+  inp.value='';out.value='';password.value='';statusEl.textContent='idle';
+  showMsg('🔒 Screen auto-wiped for security','err');
+}
+document.getElementById('panicWipe').addEventListener('click', wipeScreen);
+window.addEventListener('blur', wipeScreen);
+let idleTimer;
+function resetIdle(){
+  clearTimeout(idleTimer);
+  idleTimer=setTimeout(wipeScreen, 3*60*1000); // 3 minutes
+}
+['mousemove','keydown','touchstart','click'].forEach(ev=>document.addEventListener(ev,resetIdle));
+resetIdle();
+// -----------------------------------------
+
 const b64=(buf)=>btoa(String.fromCharCode(...new Uint8Array(buf)));
 const unb64=(s)=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
-
-async function deriveKey(password,salt){
-  const enc=new TextEncoder();
-  const base=await crypto.subtle.importKey('raw',enc.encode(password),{name:'PBKDF2'},false,['deriveKey']);
-  return crypto.subtle.deriveKey(
-    {name:'PBKDF2',salt,iterations:600000,hash:'SHA-256'},
-    base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']
-  );
-}
-
-async function aesEncrypt(plaintext,password){
-  const enc=new TextEncoder();
-  const salt=crypto.getRandomValues(new Uint8Array(16));
-  const iv=crypto.getRandomValues(new Uint8Array(12));
-  const key=await deriveKey(password,salt);
-  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv,tagLength:128},key,enc.encode(plaintext));
-  const ctBytes=new Uint8Array(ct);
-  const tag=ctBytes.slice(-16);
-  const cipher=ctBytes.slice(0,-16);
-  const pkg={v:1,alg:'AES-256-GCM',kdf:'PBKDF2-SHA256-600000',salt:b64(salt),iv:b64(iv),ct:b64(cipher),tag:b64(tag)};
-  return 'MPC1.'+btoa(JSON.stringify(pkg));
-}
-
-async function aesDecrypt(payload,password){
-  if(!payload.startsWith('MPC1.'))throw new Error('Not an MPC1 message');
-  let pkg;
-  try{pkg=JSON.parse(atob(payload.slice(5)));}catch{throw new Error('Corrupted MPC1 header');}
-  if(pkg.v!==1||pkg.alg!=='AES-256-GCM')throw new Error('Unsupported MPC1 version/algorithm');
-  const salt=unb64(pkg.salt),iv=unb64(pkg.iv),ct=unb64(pkg.ct),tag=unb64(pkg.tag);
-  const combined=new Uint8Array(ct.length+tag.length);
-  combined.set(ct,0);combined.set(tag,ct.length);
-  const key=await deriveKey(password,salt);
-  try{
-    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv,tagLength:128},key,combined);
-    return new TextDecoder().decode(pt);
-  }catch{throw new Error('AUTHENTICATION FAILED — wrong password or modified message');}
-}
-
-/* ---------- Educational ciphers ---------- */
-function caesar(t,s,dec=false){
-  if(dec)s=-s;s=((s%26)+26)%26;
-  return t.replace(/[a-zA-Z]/g,ch=>{
-    const b=ch<='Z'?65:97;
-    return String.fromCharCode((ch.charCodeAt(0)-b+s+26)%26+b);
-  });
-}
+async function deriveKey(password,salt){const enc=new TextEncoder();const base=await crypto.subtle.importKey('raw',enc.encode(password),{name:'PBKDF2'},false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:600000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
+async function aesEncrypt(plaintext,password){const enc=new TextEncoder();const salt=crypto.getRandomValues(new Uint8Array(16));const iv=crypto.getRandomValues(new Uint8Array(12));const key=await deriveKey(password,salt);const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv,tagLength:128},key,enc.encode(plaintext));const ctBytes=new Uint8Array(ct);const tag=ctBytes.slice(-16);const cipher=ctBytes.slice(0,-16);const pkg={v:1,alg:'AES-256-GCM',kdf:'PBKDF2-SHA256-600000',salt:b64(salt),iv:b64(iv),ct:b64(cipher),tag:b64(tag)};return 'MPC1.'+btoa(JSON.stringify(pkg));}
+async function aesDecrypt(payload,password){if(!payload.startsWith('MPC1.'))throw new Error('Not an MPC1 message');let pkg;try{pkg=JSON.parse(atob(payload.slice(5)));}catch{throw new Error('Corrupted MPC1 header');}if(pkg.v!==1||pkg.alg!=='AES-256-GCM')throw new Error('Unsupported MPC1 version');const salt=unb64(pkg.salt),iv=unb64(pkg.iv),ct=unb64(pkg.ct),tag=unb64(pkg.tag);const combined=new Uint8Array(ct.length+tag.length);combined.set(ct,0);combined.set(tag,ct.length);const key=await deriveKey(password,salt);try{const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv,tagLength:128},key,combined);return new TextDecoder().decode(pt);}catch{throw new Error('AUTHENTICATION FAILED — wrong password or modified');}}
+function caesar(t,s,dec=false){if(dec)s=-s;s=((s%26)+26)%26;return t.replace(/[a-zA-Z]/g,ch=>{const b=ch<='Z'?65:97;return String.fromCharCode((ch.charCodeAt(0)-b+s+26)%26+b);});}
 function atbash(t){return t.replace(/[a-zA-Z]/g,ch=>{const b=ch<='Z'?65:97;return String.fromCharCode(b+25-(ch.charCodeAt(0)-b));});}
 function rot13(t){return caesar(t,13);}
 function reverse(t){return [...t].reverse().join('');}
@@ -347,242 +185,43 @@ const MORSE={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:
 const RMORSE=Object.fromEntries(Object.entries(MORSE).map(([k,v])=>[v,k]));
 const morseE=t=>[...t.toUpperCase()].map(c=>MORSE[c]||c).join(' ');
 const morseD=t=>t.split(' ').map(m=>RMORSE[m]||m).join('');
-
-/* ---------- Helper: run an action with the button showing a spinner ---------- */
-async function withButtonSpinner(btn, fn){
-  if(btn.disabled) return;
-  btn.classList.add('loading');
-  btn.disabled = true;
-  try {
-    return await fn();
-  } finally {
-    btn.classList.remove('loading');
-    btn.disabled = false;
-  }
-}
-
-/* ---------- Encrypt / decrypt ---------- */
+async function withButtonSpinner(btn, fn){if(btn.disabled)return;btn.classList.add('loading');btn.disabled=true;try{return await fn();}finally{btn.classList.remove('loading');btn.disabled=false;}}
 async function run(action, btn){
-  const t=inp.value;
-  if(!t){showMsg('Nothing to process','err');return;}
-  const m=modeSel.value;
-  statusEl.textContent='working…';
-
+  const t=inp.value;if(!t){showMsg('Nothing to process','err');return;}const m=modeSel.value;statusEl.textContent='working…';
   async function work(){
     try{
       let result;
-      if(m==='secure'){
-        if(!password.value){showMsg('Enter a password for AES-256-GCM','err');statusEl.textContent='idle';return;}
-        if(password.value.length<12){showMsg('Password must be 12+ characters','err');statusEl.textContent='idle';return;}
-        if(action==='encrypt'){
-          result=await aesEncrypt(t,password.value);
-          fetch('/api/message-log',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({algorithm:'AES-256-GCM',size:t.length})});
-        } else result=await aesDecrypt(t,password.value);
-      } else {
-        const s=parseInt(shift.value),dec=(action==='decrypt');
-        switch(m){
-          case 'caesar': result=caesar(t,s,dec);break;
-          case 'atbash': result=atbash(t);break;
-          case 'base64': result=dec?b64d(t):b64e(t);break;
-          case 'rot13': result=rot13(t);break;
-          case 'reverse': result=reverse(t);break;
-          case 'binary': result=dec?binD(t):binE(t);break;
-          case 'hex': result=dec?hexD(t):hexE(t);break;
-          case 'morse': result=dec?morseD(t):morseE(t);break;
-        }
-      }
-      out.value=result;
-      statusEl.textContent='done';
-      refreshActionButtons();
-      showMsg(action==='encrypt'?'🔐 Encrypted':'🔓 Decrypted','ok');
-      addHistory(action,m,t,result);
-    }catch(e){
-      statusEl.textContent='error';
-      out.value='';
-      refreshActionButtons();
-      showMsg('❌ '+e.message,'err');
-    }
+      if(m==='secure'){if(!password.value){showMsg('Enter a password','err');statusEl.textContent='idle';return;}if(password.value.length<12){showMsg('Password must be 12+ characters','err');statusEl.textContent='idle';return;}if(action==='encrypt'){result=await aesEncrypt(t,password.value);fetch('/api/message-log',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({algorithm:'AES-256-GCM',size:t.length})});}else result=await aesDecrypt(t,password.value);}
+      else{const s=parseInt(shift.value),dec=(action==='decrypt');switch(m){case 'caesar': result=caesar(t,s,dec);break;case 'atbash': result=atbash(t);break;case 'base64': result=dec?b64d(t):b64e(t);break;case 'rot13': result=rot13(t);break;case 'reverse': result=reverse(t);break;case 'binary': result=dec?binD(t):binE(t);break;case 'hex': result=dec?hexD(t):hexE(t);break;case 'morse': result=dec?morseD(t):morseE(t);break;}}
+      out.value=result;statusEl.textContent='done';refreshActionButtons();showMsg(action==='encrypt'?'🔐 Encrypted':'🔓 Decrypted','ok');addHistory(action,m,t,result);
+    }catch(e){statusEl.textContent='error';out.value='';refreshActionButtons();showMsg('❌ '+e.message,'err');}
   }
-
-  if(btn){
-    return withButtonSpinner(btn, work);
-  } else {
-    return work();
-  }
+  if(btn)return withButtonSpinner(btn, work); else return work();
 }
-
-function addHistory(action,mode,input,output){
-  const el=document.createElement('div');
-  el.className='hi';
-  const t=new Date().toLocaleTimeString();
-  const safe=(s)=>s.length>40?s.slice(0,40)+'…':s;
-  el.textContent=`[${t}] ${action.toUpperCase()} ${mode} | "${safe(input)}" → "${safe(output)}"`;
-  hist.insertBefore(el,hist.firstChild);
-  while(hist.children.length>15)hist.removeChild(hist.lastChild);
-}
-
-/* ---------- Buttons ---------- */
-const encBtn=document.getElementById('encBtn');
-const decBtn=document.getElementById('decBtn');
-encBtn.onclick=()=>run('encrypt', encBtn);
-decBtn.onclick=()=>run('decrypt', decBtn);
-
-document.getElementById('copyBtn').onclick=async function(){
-  await withButtonSpinner(this, async ()=>{
-    if(!out.value){showMsg('Nothing to copy','err');return;}
-    try{await navigator.clipboard.writeText(out.value);showMsg('📋 Copied','ok');}
-    catch{out.select();document.execCommand('copy');showMsg('📋 Copied','ok');}
-  });
-};
-
-document.getElementById('clearBtn').onclick=async function(){
-  await withButtonSpinner(this, async ()=>{
-    inp.value='';out.value='';statusEl.textContent='idle';refreshActionButtons();
-  });
-};
-
-document.getElementById('fullBtn').onclick=async function(){
-  await withButtonSpinner(this, async ()=>{
-    if(!document.fullscreenElement)await document.documentElement.requestFullscreen();
-    else await document.exitFullscreen();
-  });
-};
-
-document.getElementById('randomPw').onclick=async function(){
-  await withButtonSpinner(this, async ()=>{
-    const charset='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+';
-    const buf=new Uint32Array(20);crypto.getRandomValues(buf);
-    let pw='';for(let i=0;i<20;i++)pw+=charset[buf[i]%charset.length];
-    password.value=pw;password.type='text';
-    showMsg('🔑 Random password generated','ok');
-  });
-};
-
-/* ---------- QR ---------- */
-const qrModal=document.getElementById('qrModal');
-const qrHolder=document.getElementById('qrHolder');
-
-qrBtn.onclick=async function(){
-  await withButtonSpinner(this, async ()=>{
-    const payload=out.value.trim();
-    if(!payload.startsWith('MPC1.')){showMsg('Generate an AES-256-GCM message first','err');return;}
-    qrHolder.innerHTML='';
-    try{
-      new QRCode(qrHolder,{text:payload,width:320,height:320,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.L});
-    }catch(e){showMsg('QR generation failed: message too large','err');return;}
-    qrModal.classList.add('open');
-  });
-};
-
-document.getElementById('qrClose').onclick=()=>qrModal.classList.remove('open');
-qrModal.onclick=(e)=>{if(e.target===qrModal)qrModal.classList.remove('open');};
-
-document.getElementById('qrDownload').onclick=async function(){
-  await withButtonSpinner(this, async ()=>{
-    const canvas=qrHolder.querySelector('canvas');
-    if(!canvas){showMsg('No QR to download','err');return;}
-    const link=document.createElement('a');
-    link.download='mpc-message-qr.png';
-    link.href=canvas.toDataURL('image/png');
-    link.click();
-  });
-};
-
-/* ---------- .mpc save ---------- */
-saveBtn.onclick=async function(){
-  await withButtonSpinner(this, async ()=>{
-    const payload=out.value.trim();
-    if(!payload.startsWith('MPC1.')){showMsg('Generate an AES-256-GCM message first','err');return;}
-    const header='-----BEGIN MPC SECURE MESSAGE-----';
-    const footer='-----END MPC SECURE MESSAGE-----';
-    const content=`${header}\n${payload}\n${footer}\n`;
-    const blob=new Blob([content],{type:'application/octet-stream'});
-    const url=URL.createObjectURL(blob);
-    const link=document.createElement('a');
-    const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-    link.download=`mpc-message-${stamp}.mpc`;
-    link.href=url;
-    link.click();
-    URL.revokeObjectURL(url);
-    showMsg('💾 Saved as .mpc file','ok');
-  });
-};
-
-/* ---------- .mpc load ---------- */
+function addHistory(action,mode,input,output){const el=document.createElement('div');el.className='hi';const t=new Date().toLocaleTimeString();const safe=(s)=>s.length>40?s.slice(0,40)+'…':s;el.textContent=`[${t}] ${action.toUpperCase()} ${mode} | "${safe(input)}" → "${safe(output)}"`;hist.insertBefore(el,hist.firstChild);while(hist.children.length>15)hist.removeChild(hist.lastChild);}
+const encBtn=document.getElementById('encBtn'),decBtn=document.getElementById('decBtn');
+encBtn.onclick=()=>run('encrypt', encBtn);decBtn.onclick=()=>run('decrypt', decBtn);
+document.getElementById('copyBtn').onclick=async function(){await withButtonSpinner(this, async ()=>{if(!out.value){showMsg('Nothing to copy','err');return;}try{await navigator.clipboard.writeText(out.value);showMsg('📋 Copied','ok');}catch{out.select();document.execCommand('copy');showMsg('📋 Copied','ok');}});};
+document.getElementById('clearBtn').onclick=async function(){await withButtonSpinner(this, async ()=>{inp.value='';out.value='';statusEl.textContent='idle';refreshActionButtons();});};
+document.getElementById('fullBtn').onclick=async function(){await withButtonSpinner(this, async ()=>{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen();});};
+document.getElementById('randomPw').onclick=async function(){await withButtonSpinner(this, async ()=>{const charset='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+';const buf=new Uint32Array(20);crypto.getRandomValues(buf);let pw='';for(let i=0;i<20;i++)pw+=charset[buf[i]%charset.length];password.value=pw;password.type='text';showMsg('🔑 Random password generated','ok');});};
+const qrModal=document.getElementById('qrModal'),qrHolder=document.getElementById('qrHolder');
+qrBtn.onclick=async function(){await withButtonSpinner(this, async ()=>{const payload=out.value.trim();if(!payload.startsWith('MPC1.')){showMsg('Generate an AES message first','err');return;}qrHolder.innerHTML='';try{new QRCode(qrHolder,{text:payload,width:320,height:320,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.L});}catch(e){showMsg('QR failed: message too large','err');return;}qrModal.classList.add('open');});};
+document.getElementById('qrClose').onclick=()=>qrModal.classList.remove('open');qrModal.onclick=(e)=>{if(e.target===qrModal)qrModal.classList.remove('open');};
+document.getElementById('qrDownload').onclick=async function(){await withButtonSpinner(this, async ()=>{const canvas=qrHolder.querySelector('canvas');if(!canvas){showMsg('No QR to download','err');return;}const link=document.createElement('a');link.download='mpc-message-qr.png';link.href=canvas.toDataURL('image/png');link.click();});};
+saveBtn.onclick=async function(){await withButtonSpinner(this, async ()=>{const payload=out.value.trim();if(!payload.startsWith('MPC1.')){showMsg('Generate an AES message first','err');return;}const header='-----BEGIN MPC SECURE MESSAGE-----';const footer='-----END MPC SECURE MESSAGE-----';const content=`${header}\n${payload}\n${footer}\n`;const blob=new Blob([content],{type:'application/octet-stream'});const url=URL.createObjectURL(blob);const link=document.createElement('a');const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);link.download=`mpc-message-${stamp}.mpc`;link.href=url;link.click();URL.revokeObjectURL(url);showMsg('💾 Saved as .mpc file','ok');});};
 loadBtn.onclick=()=>loadFile.click();
-
-loadFile.onchange=(e)=>{
-  const file=e.target.files[0];
-  if(!file)return;
-  const reader=new FileReader();
-  reader.onload=(ev)=>{
-    let text=ev.target.result;
-    const begin='-----BEGIN MPC SECURE MESSAGE-----';
-    const end='-----END MPC SECURE MESSAGE-----';
-    const bIdx=text.indexOf(begin);
-    const eIdx=text.indexOf(end);
-    if(bIdx!==-1 && eIdx!==-1) text=text.slice(bIdx+begin.length,eIdx).trim();
-    else text=text.trim();
-    if(!text.startsWith('MPC1.')){showMsg('Not a valid .mpc file','err');return;}
-    modeSel.value='secure';modeSel.onchange();
-    inp.value=text;out.value='';refreshActionButtons();
-    showMsg('📂 Loaded. Enter password and click DECRYPT.','ok');
-  };
-  reader.readAsText(file);
-  loadFile.value='';
-};
-
-/* ---------- Top-bar buttons (guide, password, logout) ---------- */
-document.getElementById('logout').onclick=async function(){
-  await withButtonSpinner(this, async ()=>{
-    await fetch('/api/logout',{method:'POST',credentials:'include'});
-    location.href='/login';
-  });
-};
-document.getElementById('pwBtn').onclick=function(){
-  const self=this;
-  withButtonSpinner(self, async ()=>{
-    await new Promise(r=>setTimeout(r,300));
-    location.href='/change-password';
-  });
-};
-document.getElementById('guideBtn').onclick=function(){
-  const self=this;
-  withButtonSpinner(self, async ()=>{
-    await new Promise(r=>setTimeout(r,300));
-    location.href='/guide';
-  });
-};
-
-/* ---------- PWA ---------- */
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/static/service-worker.js').catch(()=>{});
-  });
-}
-let deferredPrompt=null;
-const pwaBanner=document.getElementById('pwaBanner');
-window.addEventListener('beforeinstallprompt',(e)=>{
-  e.preventDefault();deferredPrompt=e;
-  if(!sessionStorage.getItem('pwa_dismissed')) pwaBanner.classList.add('show');
-});
-document.getElementById('pwaInstallBtn').addEventListener('click',async function(){
-  await withButtonSpinner(this, async ()=>{
-    if(!deferredPrompt)return;
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt=null;pwaBanner.classList.remove('show');
-  });
-});
-document.getElementById('pwaDismissBtn').addEventListener('click',()=>{
-  pwaBanner.classList.remove('show');
-  sessionStorage.setItem('pwa_dismissed','1');
-});
+loadFile.onchange=(e)=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(ev)=>{let text=ev.target.result;const begin='-----BEGIN MPC SECURE MESSAGE-----';const end='-----END MPC SECURE MESSAGE-----';const bIdx=text.indexOf(begin);const eIdx=text.indexOf(end);if(bIdx!==-1 && eIdx!==-1) text=text.slice(bIdx+begin.length,eIdx).trim();else text=text.trim();if(!text.startsWith('MPC1.')){showMsg('Not a valid .mpc file','err');return;}modeSel.value='secure';modeSel.onchange();inp.value=text;out.value='';refreshActionButtons();showMsg('📂 Loaded. Enter password and click DECRYPT.','ok');};reader.readAsText(file);loadFile.value='';};
+document.getElementById('logout').onclick=async function(){await withButtonSpinner(this, async ()=>{await fetch('/api/logout',{method:'POST',credentials:'include'});location.href='/login';});};
+document.getElementById('pwBtn').onclick=function(){const self=this;withButtonSpinner(self, async ()=>{await new Promise(r=>setTimeout(r,300));location.href='/change-password';});};
+document.getElementById('guideBtn').onclick=function(){const self=this;withButtonSpinner(self, async ()=>{await new Promise(r=>setTimeout(r,300));location.href='/guide';});};
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/static/service-worker.js').catch(()=>{});});}
+let deferredPrompt=null;const pwaBanner=document.getElementById('pwaBanner');
+window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;if(!sessionStorage.getItem('pwa_dismissed')) pwaBanner.classList.add('show');});
+document.getElementById('pwaInstallBtn').addEventListener('click',async function(){await withButtonSpinner(this, async ()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;pwaBanner.classList.remove('show');});});
+document.getElementById('pwaDismissBtn').addEventListener('click',()=>{pwaBanner.classList.remove('show');sessionStorage.setItem('pwa_dismissed','1');});
 window.addEventListener('appinstalled',()=>pwaBanner.classList.remove('show'));
-
-/* ---------- Init ---------- */
-modeSel.onchange();
-refreshActionButtons();
+modeSel.onchange();refreshActionButtons();
 </script>
 </body>
 </html>
